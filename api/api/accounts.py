@@ -32,6 +32,19 @@ class Account(object):
         self._password = password
         self._username = username
 
+    def __eq__(self, other):
+        '''Compare this account with another account'''
+        return (
+            isinstance(other, Account)
+            and self.uuid == other.uuid
+            and self.email == other.email
+            and self.password == other.password
+            and self.username == other.username
+        )
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     @property
     def uuid(self):
         '''Get the account's UUID'''
@@ -72,18 +85,24 @@ class Account(object):
         '''Set the account's username'''
         self._username = value
 
-    def __eq__(self, other):
-        '''Compare this account with another account'''
-        return (
-            isinstance(other, Account)
-            and self.uuid == other.uuid
-            and self.email == other.email
-            and self.password == other.password
-            and self.username == other.username
+    @staticmethod
+    def from_dict(account_dict):
+        '''Create an account from a dictionary'''
+        return Account(
+            uuid=account_dict.get('uuid'),
+            email=account_dict.get('email'),
+            password=account_dict.get('password'),
+            username=account_dict.get('username')
         )
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    def to_dict(self):
+        '''Create an account from a dictionary'''
+        return {
+            'uuid': self.uuid,
+            'email': self.email,
+            'password': self.password,
+            'username': self.username
+        }
 
 
 class AccountRepository(object):
