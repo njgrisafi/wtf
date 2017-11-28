@@ -114,6 +114,37 @@ def test_account_equality_misc():
     assert Account() != None
 
 
+def test_account_from_dict():
+    expected = Account(
+        email=TEST_EMAIL,
+        password=TEST_PASSWORD_HASH,
+        username=TEST_USERNAME
+    )
+    actual = Account.from_dict({
+        'uuid': expected.uuid,
+        'email': TEST_EMAIL,
+        'password': TEST_PASSWORD_HASH,
+        'username': TEST_USERNAME
+    })
+    assert actual == expected
+
+
+def test_account_to_dict():
+    account = Account(
+        email=TEST_EMAIL,
+        password=TEST_PASSWORD_HASH,
+        username=TEST_USERNAME
+    )
+    actual = account.to_dict()
+    expected = {
+        'uuid': account.uuid,
+        'email': TEST_EMAIL,
+        'password': TEST_PASSWORD_HASH,
+        'username': TEST_USERNAME
+    }
+    assert actual == expected
+
+
 def test_find_account_by_uuid(repo):
     account = Account(username=TEST_USERNAME)
     repo.save(account)
