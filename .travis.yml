@@ -6,7 +6,6 @@ install:
   - pipenv install --dev
 script:
   - pipenv run pylint api/api
-  - pipenv run pylint api/tests
   - pipenv run pytest
 branches:
   only:
