@@ -50,6 +50,11 @@ For more help with pipenv:
 $ pipenv --help
 ```
 
+To use [Vagrant](https://www.vagrantup.com/):
+```bash
+$ vagrant up & vagrant ssh
+```
+
 ## developing
 
 **Note:** It's easier to work from the subshell created by `pipenv shell`. If you use `pipenv shell`, you can omit `pipenv run` in the commands below.
