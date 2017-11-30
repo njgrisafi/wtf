@@ -1,6 +1,6 @@
 # pylint: disable=missing-docstring,invalid-name
 from mock import patch, Mock
-from api import util
+from . import util
 
 @patch('api.util.sha256')
 def test_salt_and_hash_no_salt(mock_sha256):

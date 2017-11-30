@@ -1,7 +1,7 @@
 # pylint: disable=missing-docstring,invalid-name,redefined-outer-name
 import pytest
 from mock import patch
-from api.accounts import IN_MEMORY_ACCOUNTS, Account, AccountRepository
+from .accounts import IN_MEMORY_ACCOUNTS, Account, AccountRepository
 
 
 TEST_EMAIL = 'foobar@gmail.com'
