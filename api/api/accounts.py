@@ -1,13 +1,10 @@
-'''The accounts module contains the following:
-    Account: a model of an account in War Torn Faith
-    AccountRepository: provides the ability to store and retrieve accounts
-    register: registers a blueprint for account operations to a Flask app
-'''
+'''Routes and functions for manipulating accounts'''
 from uuid import uuid4
-from flask import Blueprint
-from .util import salt_and_hash
+from flask import Blueprint, jsonify, make_response, request
+from . import util
 
 
+BLUEPRINT = Blueprint('accounts', __name__)
 IN_MEMORY_ACCOUNTS = {
     'by_uuid': {},
     'by_email': {},
@@ -15,150 +12,95 @@ IN_MEMORY_ACCOUNTS = {
 }
 
 
-class Account(object):
-    '''Accounts are created by the players of War Torn Faith
+@BLUEPRINT.route('', methods=['POST'])
+def route_create_account():
+    '''Handle account creation requests.
+
+    $ curl \
+        --request POST \
+        --url http://localhost:5000/api/accounts \
+        --header "Content-Type: application/json" \
+        --write-out "\n" \
+        --data '{
+            "email": "...",
+            "password": "..."
+        }'
+    '''
+    errors = []
+    if request.content_type != 'application/json':
+        errors.append('Content-Type header must be: application/json')
+    else:
+        body = request.get_json(silent=True) or {}
+        if 'email' not in body:
+            errors.append('Missing required field: email')
+        elif find_by_email(body.get('email')) is not None:
+            errors.append(
+                'An account is already registered with the provided email '
+                + 'address.'
+            )
+        if 'password' not in body:
+            errors.append('Missing required field: password')
+    response_body = None
+    response_code = 200
+    if errors:
+        response_body = {'errors': errors}
+        response_code = 400
+    else:
+        response_body = save(create(
+            email=body.get('email'),
+            password=body.get('password')
+        ))
+    return make_response(jsonify(response_body), response_code)
+
+
+def create(uuid=None, email=None, password=None):
+    '''Create an account.
 
     Accounts have the following properties:
         uuid: a "universally unique identifier" for the account
         email: an email address that the player can be reached at
         password: the password used to authenticate as the account
-        username: the player's public identity
     '''
-
-    def __init__(self, uuid=None, email=None, password=None, username=None):
-        '''Initialize an account'''
-        self._uuid = uuid or uuid4()
-        self._email = email
-        self._password = password
-        self._username = username
-
-    def __eq__(self, other):
-        '''Compare this account with another account'''
-        return (
-            isinstance(other, Account)
-            and self.uuid == other.uuid
-            and self.email == other.email
-            and self.password == other.password
-            and self.username == other.username
-        )
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    @property
-    def uuid(self):
-        '''Get the account's UUID'''
-        return self._uuid
-
-    @uuid.setter
-    def uuid(self, value):
-        '''Set the account's UUID'''
-        self._uuid = value
-
-    @property
-    def email(self):
-        '''Get the account's email address'''
-        return self._email
-
-    @email.setter
-    def email(self, value):
-        '''Set the account's email address'''
-        self._email = value
-
-    @property
-    def password(self):
-        '''Get the account's password'''
-        return self._password
-
-    @password.setter
-    def password(self, value):
-        '''Set the account's password'''
-        self._password = salt_and_hash(value)
-
-    @property
-    def username(self):
-        '''Get the account's username'''
-        return self._username
-
-    @username.setter
-    def username(self, value):
-        '''Set the account's username'''
-        self._username = value
-
-    @staticmethod
-    def from_dict(account_dict):
-        '''Create an account from a dictionary'''
-        return Account(
-            uuid=account_dict.get('uuid'),
-            email=account_dict.get('email'),
-            password=account_dict.get('password'),
-            username=account_dict.get('username')
-        )
-
-    def to_dict(self):
-        '''Create an account from a dictionary'''
-        return {
-            'uuid': self.uuid,
-            'email': self.email,
-            'password': self.password,
-            'username': self.username
-        }
+    return {
+        'uuid': uuid,
+        'email': email,
+        'password': util.salt_and_hash(password) if password else None
+    }
 
 
-class AccountRepository(object):
-    '''The AccountRepository provides the ability to store and retrieve accounts
+def save(account):
+    '''Persist an account.
 
-    `save()` persists an account - it creates a new account if one does not
-        already exist, or updates an existing one.
-
-    `find_by_uuid()`, `find_by_email()`, and `find_by_username()` retrieves an
-        account by one of the three uniquely identifying fields: uuid, email, or
-        username, respectively.
-
-    `find_by_email_password()` retrieves an account by an email address and
-        password combination. This function is intended to be used with account
-        authentication - it will return `None` if the supplied email and
-        password combination is incorrect. Note that the password is the
-        account's plaintext password.
+    If the account already exists, it will be updated; otherwise, it will be
+        created.
     '''
-
-    def __init__(self):
-        '''Initialize an account repository'''
-        self.by_uuid = IN_MEMORY_ACCOUNTS.get('by_uuid')
-        self.by_email = IN_MEMORY_ACCOUNTS.get('by_email')
-        self.by_username = IN_MEMORY_ACCOUNTS.get('by_username')
-
-    def save(self, account):
-        '''Save an account'''
-        self.by_uuid[account.uuid] = account
-        self.by_email[account.email] = account
-        self.by_username[account.username] = account
-
-    def find_by_uuid(self, uuid):
-        '''Find an account with the given UUID'''
-        return self.by_uuid.get(uuid)
-
-    def find_by_email(self, email):
-        '''Find an account with the given email address'''
-        return self.by_email.get(email)
-
-    def find_by_username(self, username):
-        '''Find an account with the given username'''
-        return self.by_username.get(username)
-
-    def find_by_email_password(self, email, password):
-        '''Find an account with the given email address and password'''
-        account = self.find_by_email(email)
-        if account is not None:
-            # the salt is the first 64 characters of the password
-            salt = account.password[:64]
-            if salt_and_hash(password, salt) != account.password:
-                account = None
-        return account
+    if account.get('uuid') is None:
+        account['uuid'] = uuid4()
+    IN_MEMORY_ACCOUNTS.get('by_uuid')[account.get('uuid')] = account
+    IN_MEMORY_ACCOUNTS.get('by_email')[account.get('email')] = account
+    return account
 
 
-def register(app, prefix):
-    '''Register a blueprint for account operations to a Flask app'''
-    blueprint = Blueprint('accounts', __name__)
-    blueprint.route('/accounts')(lambda: 'Not implemented')
-    app.register_blueprint(blueprint, url_prefix=prefix)
+def find_by_uuid(uuid):
+    '''Find an account with the given UUID.'''
+    return IN_MEMORY_ACCOUNTS.get('by_uuid').get(uuid)
+
+
+def find_by_email(email):
+    '''Find an account with the given email address.'''
+    return IN_MEMORY_ACCOUNTS.get('by_email').get(email)
+
+
+def find_by_email_password(email, password):
+    '''Find an account with the given email address and password.
+
+    This function is intended to be used with account
+    authentication - it will return `None` if the supplied email and
+    password combination is incorrect. Note that the password supplied to this
+    function is the account's plaintext password.
+    '''
+    account = find_by_email(email)
+    if account is not None:
+        if not util.salt_and_hash_compare(password, account.get('password')):
+            account = None
+    return account
