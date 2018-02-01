@@ -1,6 +1,7 @@
 from flask import Flask
-import api
+from api import BLUEPRINTS
 
 
 app = Flask(__name__)
-api.register(app)
+for path in BLUEPRINTS.keys():
+    app.register_blueprint(BLUEPRINTS.get(path), url_prefix='/api%s' % path)

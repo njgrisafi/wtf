@@ -3,16 +3,11 @@ backend logic of the game for clients to consume. While it is mostly designed to
 be consumed by War Torn Faith's web app, third-party consumption is also a
 possibility.
 '''
-from flask import Blueprint
-from . import accounts
-from . import characters
-from . import fights
+from . import accounts, characters, health
 
 
-def register(app, prefix='/api'):
-    '''Register the API's Flask Blueprints into a Flask application and under
-    the specified url prefix ("/api" by default)
-    '''
-    accounts.register(app, prefix)
-    characters.register(app, prefix)
-    fights.register(app, prefix)
+BLUEPRINTS = {
+    '/accounts': accounts.BLUEPRINT,
+    '/characters': characters.BLUEPRINT,
+    '/health': health.BLUEPRINT
+}
