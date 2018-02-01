@@ -38,6 +38,12 @@ For more information about this architectural pattern, please see: [Wikipedia: R
 
 You will need [git](https://git-scm.com/) and a [GitHub](https://github.com/) account in order to checkout and make contributions to this project's codebase. If these tools are new to you or you're uncomfortable using them, please refer to our [git and github primer](#git-and-github-primer).
 
+We provide a `Vagrantfile` for those who wish to use [Vagrant](https://www.vagrantup.com/) to manage their development environment:
+```bash
+$ vagrant up && vagrant ssh
+$ cd /vagrant
+```
+
 This project requires [Python 3.6+](https://www.python.org/) and [pipenv](https://github.com/kennethreitz/pipenv).
 
 We use pipenv to install and manage this project's dependencies and its environment. The `Pipfile` and `Pipfile.lock` files are both used by pipenv to ensure consistent project builds and execution.
@@ -50,11 +56,6 @@ $ pipenv install --dev
 For more help with pipenv:
 ```bash
 $ pipenv --help
-```
-
-To use [Vagrant](https://www.vagrantup.com/):
-```bash
-$ vagrant up & vagrant ssh
 ```
 
 ## developing
