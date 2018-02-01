@@ -1,14 +1,17 @@
 # Contributing
 
-Instructions for contributing to War Torn Faith.
+Instructions are provided below for those wishing to contributing to this project.
 
 ## issue tracker
 
-We use our [GitHub issue tracker](https://github.com/mrpudn/wtf/issues) for tracking bugs, new features, enhancements, and discussions. If you discover a bug or would like to participate in the development of this project, please use our issue tracker.
+We use our [issue tracker](https://github.com/mrpudn/wtf/issues) for tracking bugs, new features, enhancements, and discussions. If you discover a bug or would like to participate in the development of this project, please use our issue tracker.
 
 ## kanban board
 
-We have a special GitHub project set up as our [Kanban Board](https://github.com/mrpudn/wtf/projects/1). It shows the status of all in-flight tasks that we're working on. There are three columns: **Backlog**, **In Progress**, and **Done**. **Backlog** contains tasks that we plan to start working on in the near future. New items are regularly added to **Backlog** after they have been groomed and prioritized and as bandwidth becomes available. **In Progress** contains tasks that we are currently working on. **Done** contains finished tasks. Old items in the **Done** column are regularly cleared out in order to avoid clutter.
+We have a special GitHub project set up as our [Kanban Board](https://github.com/mrpudn/wtf/projects/1). It shows the status of all in-flight tasks that we're working on. There are three columns: **Backlog**, **In Progress**, and **Done**:
+  - **Backlog** contains tasks that we plan to start working on in the near future. New items are regularly added to **Backlog** after they have been groomed and prioritized and as bandwidth becomes available.
+  - **In Progress** contains tasks that we are currently working on.
+  - **Done** contains finished tasks. Old items in the **Done** column are regularly cleared out in order to avoid clutter.
 
 ## pull requests
 
@@ -22,25 +25,24 @@ We ask that you include a meaningful description in your pull request, tag any i
 
 This project has a simple architecture: a **relational database**, sitting behind a **RESTful API**, which is consumed by a **web application**.
 
-The **RESTful API** is the only component that performs direct operations (`SELECT`, `CREATE`, `INSERT`, `UPDATE`, and `DELETE` queries) against the **relational database**. Clients (chiefly the **web application**) connect to the **RESTful API** using HTTP (`GET`, `POST`, `PUT`, `PATCH`, and `DELETE` methods) in order to indirectly manipulate the data in the **relational database** and carry out the business logic of the application. Additional layers of authentication, authorization, security, validation, caching, etc. that are beyond the scope of the **relational database** are built into the **RESTful API**.
+The *API* is the only component that performs direct operations against the *database* (i.e. `SELECT`, `CREATE`, `INSERT`, `UPDATE`, and `DELETE` queries). Clients (specifically the *web application*) connect to the *API* via HTTP (`GET`, `POST`, `PUT`, `PATCH`, and `DELETE` methods) in order to indirectly manipulate the data in the *database* and carry out the business logic of the application. Additional layers of authentication, authorization, security, validation, caching, etc. that are beyond the scope of the *database* are built into the *API*.
 
-Separating this functionality within the **RESTful API** component, instead of intermingling it with the **web application** has a few important benefits, including:
-  1. *reusability* - thanks to the ubiquity of the HTTP protocol, the **RESTful API** can be reused by a wide variety of clients, including Android apps, iPhone apps, third party systems, etc. Additionally, the internal workings of the **RESTful API** and the components behind it (i.e. the **relational database**) can be changed with minimal or no impact to the clients using the **RESTful API** (ex. swapping the database from one vendor to another or completely rewriting the **RESTful API** in a different programming language) - so long as the request/response contracts remain the same, these details are of no concern to clients
-  2. *scalability* - the **RESTful API** component can scale independently of the **web application**. In the future, each resource in the **RESTful API** could be split into it's own microservice and scaled independently from the rest of the microservices for potentially greater scalability.
-  3. *deployment* - the **RESTful API** can be deployed independently of the **web application** and the **relational database**
+Separating this functionality within the *API* component, instead of intermingling it with the *web application* has a few important benefits, including:
+  1. **reusability** - thanks to the ubiquity of the HTTP protocol, the *API* can be reused by a wide variety of clients, including Android apps, iPhone apps, third party systems, etc. Additionally, the internal workings of the *API* and the components behind it (i.e. the *database*) can be changed with minimal or no impact to the clients using the *API* (ex. swapping the database from one vendor to another or completely rewriting the *API* in a different programming language) - so long as the request/response contracts remain the same, these details are of no concern to clients.
+  2. **scalability** - the *API* component can scale independently of the *web application*. In the future, each resource in the *API* could be split into it's own microservice and scaled independently from the rest of the microservices for potentially greater scalability.
+  3. **deployment** - the *API* can be deployed independently of the *web application* and the *database*.
 
-For more information about this architectural pattern, please see:
-  - [Wikipedia: Representational state transfer](https://en.wikipedia.org/wiki/Representational_state_transfer)
+For more information about this architectural pattern, please see: [Wikipedia: Representational state transfer](https://en.wikipedia.org/wiki/Representational_state_transfer)
 
 ## environment setup
 
-It should go without saying that you will need [git](https://git-scm.com/) and a [GitHub](https://github.com/) account in order to checkout and make contributions to this project's codebase. If these tools are new to you or you're uncomfortable using them, please refer to our [git and github primer](#git-and-github-primer).
+You will need [git](https://git-scm.com/) and a [GitHub](https://github.com/) account in order to checkout and make contributions to this project's codebase. If these tools are new to you or you're uncomfortable using them, please refer to our [git and github primer](#git-and-github-primer).
 
-This project requires [Python 3.6](https://www.python.org/) and [pipenv](https://github.com/kennethreitz/pipenv).
+This project requires [Python 3.6+](https://www.python.org/) and [pipenv](https://github.com/kennethreitz/pipenv).
 
-We use pipenv to install and manage this project's dependencies and environment. The `Pipfile` and `Pipfile.lock` files are both used by pipenv to define and freeze the project's package and environment dependencies.
+We use pipenv to install and manage this project's dependencies and its environment. The `Pipfile` and `Pipfile.lock` files are both used by pipenv to ensure consistent project builds and execution.
 
-To install the project's dependencies (including dev dependencies):
+To install the project's dependencies (including development dependencies):
 ```bash
 $ pipenv install --dev
 ```
@@ -52,28 +54,32 @@ $ pipenv --help
 
 ## developing
 
-**Note:** It's easier to work from the subshell created by `pipenv shell`. If you use `pipenv shell`, you can omit `pipenv run` in the commands below.
-
-To lint each module:
+Create a pipenv subshell:
 ```bash
-$ pipenv run pylint api/api
-$ pipenv run pylint api/tests
+$ pipenv shell
+```
+
+*Note*: the below commands assume that you're in a pipenv subshell.
+
+To lint the project:
+```bash
+$ pylint api/api
 # ...
 ```
 
 To run the tests
 ```bash
-$ pipenv run pytest
+$ pytest
 ```
 
 To start the API:
 ```bash
-$ FLASK_APP=api/app.py pipenv run flask run
+$ FLASK_APP=api/app.py flask run
 ```
 
 To start the web app:
 ```bash
-$ FLASK_APP=app/app.py pipenv run flask run
+$ FLASK_APP=app/app.py flask run
 ```
 
 ## continuous integration
