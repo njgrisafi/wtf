@@ -1,5 +1,5 @@
 # pylint: disable=missing-docstring,invalid-name
-from . import util
+from wtf.api import util
 
 
 def test_salt_and_hash():

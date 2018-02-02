@@ -1,4 +1,8 @@
-'''Health checks'''
+'''
+wtf.api.health
+
+Health check(s).
+'''
 from flask import Blueprint
 
 
