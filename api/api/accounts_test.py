@@ -3,7 +3,7 @@ import pytest
 from flask import Flask
 from mock import patch
 from . import accounts
-from .test_helpers import assert_post
+from .testing import assert_post
 
 
 TEST_UUID = '048e8cf5-bf6f-4b39-ac97-6f9851f61b16'
