@@ -5,6 +5,7 @@
 # caches
 __pycache__
 .cache
+.pytest_cache
 
 # coverage data
 .coverage

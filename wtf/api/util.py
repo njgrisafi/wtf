@@ -1,4 +1,8 @@
-'''Miscellaneous utilities'''
+'''
+wtf.api.util
+
+Miscellaneous utilities.
+'''
 from hashlib import sha256
 from uuid import uuid4
 

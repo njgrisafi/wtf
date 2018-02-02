@@ -2,8 +2,8 @@
 import pytest
 from flask import Flask
 from mock import patch
-from . import accounts
-from .testing import assert_post
+from wtf.api import accounts
+from wtf.api.testing import assert_post
 
 
 TEST_UUID = '048e8cf5-bf6f-4b39-ac97-6f9851f61b16'
@@ -87,8 +87,8 @@ def test_route_create_account_email_exists(test_client):
         response_code=400
     )
 
-@patch('api.accounts.uuid4')
-@patch('api.accounts.util.salt_and_hash')
+@patch('wtf.api.accounts.uuid4')
+@patch('wtf.api.accounts.util.salt_and_hash')
 def test_route_create_account(mock_salt_and_hash, mock_uuid4, test_client):
     # stub out salt_and_hash to return the same value for testing purposes
     mock_salt_and_hash.return_value = TEST_PASSWORD_HASH
@@ -106,7 +106,7 @@ def test_route_create_account(mock_salt_and_hash, mock_uuid4, test_client):
     )
 
 
-@patch('api.accounts.util.salt_and_hash')
+@patch('wtf.api.accounts.util.salt_and_hash')
 def test_account_creation(mock_salt_and_hash):
     # stub out salt_and_hash to return the same value for testing purposes
     mock_salt_and_hash.return_value = TEST_PASSWORD_HASH
@@ -133,7 +133,7 @@ def test_account_creation_defaults():
     assert expected == actual
 
 
-@patch('api.accounts.util.salt_and_hash')
+@patch('wtf.api.accounts.util.salt_and_hash')
 def test_account_save_update(mock_salt_and_hash):
     # stub out salt_and_hash to return the same value for testing purposes
     mock_salt_and_hash.return_value = TEST_PASSWORD_HASH
@@ -150,8 +150,8 @@ def test_account_save_update(mock_salt_and_hash):
     assert expected == actual
 
 
-@patch('api.accounts.uuid4')
-@patch('api.accounts.util.salt_and_hash')
+@patch('wtf.api.accounts.uuid4')
+@patch('wtf.api.accounts.util.salt_and_hash')
 def test_account_save_insert(mock_salt_and_hash, mock_uuid4):
     # stub out salt_and_hash to return the same value for testing purposes
     mock_salt_and_hash.return_value = TEST_PASSWORD_HASH

@@ -6,21 +6,21 @@ War Torn Faith is a browser-based text RPG.
 
 ## getting started
 
-If you aren't familiar with Git and/or GitHub, you can refer to our [primer](CONTRIBUTING.md#git-and-github-primer) for more info.
+If you aren't familiar with Git and/or GitHub, you can refer to our quick [primer](CONTRIBUTING.md#git-and-github-primer) for more info.
 
 Install dependencies with [pipenv](https://github.com/kennethreitz/pipenv):
 ```bash
-$ pipenv install
+$ pipenv install --three
 ```
 
-Start the API:
+Start the app:
 ```bash
-$ FLASK_APP=api/app.py pipenv run flask run
+$ pipenv run python -m wtf
 ```
 
-Start the web app:
+When you're done:
 ```bash
-$ FLASK_APP=app/app.py pipenv run flask run
+$ pipenv --rm
 ```
 
 ## contributing

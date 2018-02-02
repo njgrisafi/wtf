@@ -50,7 +50,7 @@ We use pipenv to install and manage this project's dependencies and its environm
 
 To install the project's dependencies (including development dependencies):
 ```bash
-$ pipenv install --dev
+$ pipenv install --three --dev
 ```
 
 For more help with pipenv:
@@ -65,27 +65,37 @@ Create a pipenv subshell:
 $ pipenv shell
 ```
 
+Your python version should be 3.6+:
+```bash
+$ python --version
+Python 3.6.2
+```
+
 *Note*: the below commands assume that you're in a pipenv subshell.
 
 To lint the project:
 ```bash
-$ pylint api/api
-# ...
+$ pylint wtf
 ```
 
-To run the tests
+To run the tests:
 ```bash
 $ pytest
 ```
 
 To start the API:
 ```bash
-$ FLASK_APP=api/app.py flask run
+$ python -m wtf.api
 ```
 
 To start the web app:
 ```bash
-$ FLASK_APP=app/app.py flask run
+$ python -m wtf.web
+```
+
+Or, you can start the bundled app (API + web app):
+```bash
+$ python -m wtf
 ```
 
 ## continuous integration

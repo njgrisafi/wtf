@@ -1,5 +1,5 @@
 # pylint: disable=missing-docstring,invalid-name,redefined-outer-name
-from . import health
+from wtf.api import health
 
 
 def test_route_healthcheck():

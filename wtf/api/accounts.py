@@ -1,7 +1,11 @@
-'''Routes and functions for manipulating accounts'''
+'''
+wtf.api.accounts
+
+Routes and functions for manipulating accounts.
+'''
 from uuid import uuid4
 from flask import Blueprint, jsonify, make_response, request
-from . import util
+from wtf.api import util
 
 
 BLUEPRINT = Blueprint('accounts', __name__)
