@@ -1,9 +1,22 @@
 '''
-wtf.testing
+wtf.http
 
-Testing helpers.
+HTTP-related application and testing helpers.
 '''
-import json
+from json import loads as json_loads, dumps as json_dumps
+from flask import make_response, jsonify
+
+
+def success(body=None, json=None):
+    '''Create a 200 OK response'''
+    body = jsonify(json) if json else body
+    return make_response(body, 200)
+
+
+def bad_request(body=None, json=None):
+    '''Create a 400 Bad Request response'''
+    body = jsonify(json) if json else body
+    return make_response(body, 400)
 
 
 def create_test_client(app):
@@ -37,7 +50,7 @@ class Client(object):
         path = '%s%s' % (self.root_path, kwargs.get('path', ''))
         headers = kwargs.get('headers', self.default_headers)
         body = kwargs.get('body', None)
-        data = json.dumps(body) if body else None
+        data = json_dumps(body) if body else None
         response = self.test_client.post(
             path=path,
             headers=headers,
@@ -54,8 +67,16 @@ class AssertableResponse(object):
 
     def assert_status_code(self, expected):
         '''Assert that the response status code is as expected'''
-        assert self.response.status_code == expected
+        actual = self.response.status_code
+        message = 'Expected response status code to be %d, got %d'
+        message %= (expected, actual)
+        assert expected == actual, message
 
     def assert_body(self, expected):
         '''Assert that the response body is as expected'''
-        assert json.loads(self.response.data) == expected
+        actual = self.response.get_data()
+        if self.response.content_type == 'application/json':
+            actual = json_loads(actual)
+        message = 'Expected response body to be %s, got %s'
+        message %= (expected, actual)
+        assert expected == actual, message
