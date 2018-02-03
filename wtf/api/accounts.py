@@ -4,15 +4,15 @@ wtf.api.accounts
 Routes and functions for manipulating accounts.
 '''
 from uuid import uuid4
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, request
+from wtf import http
 from wtf.api import util
 
 
 BLUEPRINT = Blueprint('accounts', __name__)
 IN_MEMORY_ACCOUNTS = {
-    'by_uuid': {},
-    'by_email': {},
-    'by_username': {}
+    'by_id': {},
+    'by_email': {}
 }
 
 
@@ -30,64 +30,32 @@ def route_create_account():
             "password": "..."
         }'
     '''
+    body = request.get_json(silent=True) or {}
     errors = []
     if request.content_type != 'application/json':
         errors.append('Content-Type header must be: application/json')
     else:
-        body = request.get_json(silent=True) or {}
         if 'email' not in body:
             errors.append('Missing required field: email')
         elif find_by_email(body.get('email')) is not None:
-            errors.append(
-                'An account is already registered with the provided email '
-                + 'address.'
-            )
+            errors.append('Email address already registered')
         if 'password' not in body:
             errors.append('Missing required field: password')
-    response_body = None
-    response_code = 200
+    response = None
     if errors:
-        response_body = {'errors': errors}
-        response_code = 400
+        response = http.bad_request(json={'errors': errors})
     else:
-        response_body = save(create(
+        account = save(create(
             email=body.get('email'),
             password=body.get('password')
         ))
-    return make_response(jsonify(response_body), response_code)
+        response = http.success(json=account)
+    return response
 
 
-def create(uuid=None, email=None, password=None):
-    '''Create an account.
-
-    Accounts have the following properties:
-        uuid: a "universally unique identifier" for the account
-        email: an email address that the player can be reached at
-        password: the password used to authenticate as the account
-    '''
-    return {
-        'uuid': uuid,
-        'email': email,
-        'password': util.salt_and_hash(password) if password else None
-    }
-
-
-def save(account):
-    '''Persist an account.
-
-    If the account already exists, it will be updated; otherwise, it will be
-        created.
-    '''
-    if account.get('uuid') is None:
-        account['uuid'] = uuid4()
-    IN_MEMORY_ACCOUNTS.get('by_uuid')[account.get('uuid')] = account
-    IN_MEMORY_ACCOUNTS.get('by_email')[account.get('email')] = account
-    return account
-
-
-def find_by_uuid(uuid):
-    '''Find an account with the given UUID.'''
-    return IN_MEMORY_ACCOUNTS.get('by_uuid').get(uuid)
+def find_by_id(account_id):
+    '''Find an account with the given id.'''
+    return IN_MEMORY_ACCOUNTS.get('by_id').get(account_id)
 
 
 def find_by_email(email):
@@ -108,3 +76,34 @@ def find_by_email_password(email, password):
         if not util.salt_and_hash_compare(password, account.get('password')):
             account = None
     return account
+
+
+def save(account):
+    '''Persist an account.
+
+    If the account already exists, it will be updated; otherwise, it will be
+        created.
+    '''
+    if account.get('id') is None:
+        account['id'] = uuid4()
+    IN_MEMORY_ACCOUNTS.get('by_id')[account.get('id')] = account
+    IN_MEMORY_ACCOUNTS.get('by_email')[account.get('email')] = account
+    return account
+
+
+def create(**kwargs):
+    '''Create an account.
+
+    Accounts have the following properties:
+        id: a UUID (Universally Unique Identifier) for the account
+        email: an email address that the player can be reached at
+        password: the password used to authenticate as the account
+    '''
+    account_id = kwargs.get('id')
+    email = kwargs.get('email')
+    password = kwargs.get('password')
+    return {
+        'id': account_id,
+        'email': email,
+        'password': util.salt_and_hash(password) if password else None
+    }
