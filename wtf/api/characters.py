@@ -6,6 +6,7 @@ Routes and functions for manipulating characters.
 from uuid import uuid4
 from flask import Blueprint, request
 from wtf import http
+from wtf.errors import ValidationError
 
 
 BLUEPRINT = Blueprint('characters', __name__)
@@ -16,7 +17,7 @@ IN_MEMORY_CHARACTERS = {
 
 
 @BLUEPRINT.route('', methods=['POST'])
-def route_create_character():
+def route_create():
     '''Handle character creation requests.
 
     $ curl \
@@ -29,34 +30,18 @@ def route_create_character():
             "name": "..."
         }'
     '''
-    body = request.get_json(silent=True) or {}
-    errors = []
-    if request.content_type != 'application/json':
-        errors.append('Content-Type header must be: application/json')
-    else:
-        if 'accountId' not in body:
-            errors.append('Missing required field: accountId')
-        if 'name' not in body:
-            errors.append('Missing required field: name')
-        if set(('accountId', 'name')).issubset(body):
-            characters = find_by_account_id(body.get('accountId')) or []
-            if body.get('name') in [c.get('name') for c in characters]:
-                errors.append('Duplicate character name: %s' % body.get('name'))
     response = None
-    if errors:
-        response = http.bad_request(json={'errors': errors})
-    else:
+    try:
+        http.validate(content_type='application/json')
+        body = request.get_json(silent=True) or {}
         character = save(create(
             account_id=body.get('accountId'),
             name=body.get('name')
         ))
         response = http.success(json=character)
+    except ValidationError as error:
+        response = http.bad_request(json={'errors': error.errors})
     return response
-
-
-def find_by_account_id(account_id):
-    '''Find a characters owned by an account with the given account ID.'''
-    return IN_MEMORY_CHARACTERS.get('by_account_id').get(account_id)
 
 
 def save(character):
@@ -64,7 +49,11 @@ def save(character):
 
     If the character already exists, it will be updated; otherwise, it will be
         created.
+
+    If the character is invalid, a ValidationError will be raised.
     '''
+    character = character.copy()
+    validate(character)
     if character.get('id') is None:
         character['id'] = uuid4()
     IN_MEMORY_CHARACTERS.get('by_id')[character.get('id')] = character
@@ -74,6 +63,31 @@ def save(character):
     return character
 
 
+def validate(character):
+    '''Validate a character.
+
+    Raises a ValidationError if the provided character is invalid..
+    '''
+    account_id = character.get('accountId')
+    name = character.get('name')
+    errors = []
+    if not account_id:
+        errors.append('Missing required field: accountId')
+    if not name:
+        errors.append('Missing required field: name')
+    if account_id and name:
+        names = [c.get('name') for c in find_by_account_id(account_id)]
+        if name in names:
+            errors.append('Duplicate character name: %s' % name)
+    if errors:
+        raise ValidationError(errors=errors)
+
+
+def find_by_account_id(account_id):
+    '''Find a characters owned by an account with the given account ID.'''
+    return IN_MEMORY_CHARACTERS.get('by_account_id').get(account_id, [])
+
+
 def create(**kwargs):
     '''Create an character.
 
@@ -81,8 +95,24 @@ def create(**kwargs):
         id: a UUID (Universally Unique Identifier) for the character
         accountId: the ID of the account that owns the character
         name: the name of the character
+        abilities:
+            strength: increases attack damage
+            endurance: increases defense and health
+            agility: increases evasion and attack speed
+            accuracy: increases normal and critical attack chance
     '''
     character_id = kwargs.get('id')
     account_id = kwargs.get('account_id')
     name = kwargs.get('name')
-    return {'id': character_id, 'accountId': account_id, 'name': name}
+    abilities = kwargs.get('abilities', {})
+    return {
+        'id': character_id,
+        'accountId': account_id,
+        'name': name,
+        'abilities': {
+            'strength': abilities.get('strength', 0),
+            'endurance': abilities.get('endurance', 0),
+            'agility': abilities.get('agility', 0),
+            'accuracy': abilities.get('accuracy', 0)
+        }
+    }

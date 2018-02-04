@@ -3,6 +3,7 @@ import pytest
 from mock import patch
 from wtf.api import characters
 from wtf.api.app import create_app
+from wtf.errors import ValidationError
 from wtf.http import create_test_client
 
 
@@ -20,17 +21,14 @@ def test_client():
 
 
 @patch('wtf.api.characters.save')
-@patch('wtf.api.characters.create')
 @patch('wtf.api.characters.find_by_account_id')
 def test_route_create_character(
         mock_find_by_account_id,
-        mock_create,
         mock_save,
         test_client
     ):
-    expected = {'foo': 'bar'}
+    expected = 'foobar'
     mock_find_by_account_id.return_value = []
-    mock_create.return_value = None
     mock_save.return_value = expected
     response = test_client.post(
         body={'accountId': TEST_ACCOUNT_ID, 'name': TEST_NAME}
@@ -47,40 +45,74 @@ def test_route_create_character_content_type_not_json(test_client):
     })
 
 
-def test_route_create_character_missing_fields(test_client):
-    response = test_client.post(body={})
+@patch('wtf.api.characters.validate')
+def test_route_create_character_invalid(mock_validate, test_client):
+    mock_validate.side_effect = ValidationError(
+        errors=['foo', 'bar', 'baz']
+    )
+    response = test_client.post()
     response.assert_status_code(400)
-    response.assert_body({
-        'errors': [
-            'Missing required field: accountId',
-            'Missing required field: name'
-        ]
-    })
+    response.assert_body({'errors': ['foo', 'bar', 'baz']})
 
 
-def test_route_create_character_missing_account_id(test_client):
-    response = test_client.post(body={'name': 'foobar'})
-    response.assert_status_code(400)
-    response.assert_body({'errors': ['Missing required field: accountId']})
+@patch('wtf.api.characters.uuid4')
+@patch('wtf.api.characters.validate')
+def test_save_character_insert(mock_validate, mock_uuid4):
+    expected = {'id': TEST_ID}
+    mock_validate.return_value = None
+    mock_uuid4.return_value = TEST_ID
+    by_id = characters.IN_MEMORY_CHARACTERS['by_id']
+    actual = characters.save({'id': None})
+    assert expected == actual
+    assert expected == by_id[TEST_ID]
 
 
-def test_route_create_character_missing_name(test_client):
-    response = test_client.post(body={'accountId': 'foobar'})
-    response.assert_status_code(400)
-    response.assert_body({'errors': ['Missing required field: name']})
+@patch('wtf.api.characters.validate')
+def test_save_character_update(mock_validate):
+    expected = {'id': TEST_ID}
+    mock_validate.return_value = None
+    by_id = characters.IN_MEMORY_CHARACTERS['by_id']
+    by_id[TEST_ID] = expected
+    actual = characters.save({'id': TEST_ID})
+    assert expected == actual
+    assert expected == by_id[TEST_ID]
+
+
+def test_validate_missing_fields():
+    expected = [
+        'Missing required field: accountId',
+        'Missing required field: name'
+    ]
+    with pytest.raises(ValidationError) as e:
+        characters.validate({})
+    actual = e.value.errors
+    assert expected == actual
+
+
+def test_validate_missing_account_id():
+    expected = ['Missing required field: accountId']
+    with pytest.raises(ValidationError) as e:
+        characters.validate({'name': 'foobar'})
+    actual = e.value.errors
+    assert expected == actual
+
+
+def test_validate_missing_name():
+    expected = ['Missing required field: name']
+    with pytest.raises(ValidationError) as e:
+        characters.validate({'accountId': 'foobar'})
+    actual = e.value.errors
+    assert expected == actual
 
 
 @patch('wtf.api.characters.find_by_account_id')
-def test_route_create_character_duplicate_character_name(
-        mock_find_by_account_id,
-        test_client
-    ):
+def test_validate_duplicate_name(mock_find_by_account_id):
+    expected = ['Duplicate character name: foo']
     mock_find_by_account_id.return_value = [{'name': 'foo'}]
-    response = test_client.post(
-        body={'accountId': TEST_ACCOUNT_ID, 'name': 'foo'}
-    )
-    response.assert_status_code(400)
-    response.assert_body({'errors': ['Duplicate character name: foo']})
+    with pytest.raises(ValidationError) as e:
+        characters.validate({'accountId': TEST_ACCOUNT_ID, 'name': 'foo'})
+    actual = e.value.errors
+    assert expected == actual
 
 
 def test_find_by_account_id():
@@ -91,32 +123,37 @@ def test_find_by_account_id():
     assert expected == actual
 
 
-@patch('wtf.api.characters.uuid4')
-def test_save_character_insert(mock_uuid4):
-    expected = {'id': TEST_ID}
-    mock_uuid4.return_value = TEST_ID
-    by_id = characters.IN_MEMORY_CHARACTERS['by_id']
-    actual = characters.save({'id': None})
-    assert expected == actual
-    assert expected == by_id[TEST_ID]
-
-
-def test_save_character_update():
-    expected = {'id': TEST_ID}
-    by_id = characters.IN_MEMORY_CHARACTERS['by_id']
-    by_id[TEST_ID] = expected
-    actual = characters.save({'id': TEST_ID})
-    assert expected == actual
-    assert expected == by_id[TEST_ID]
-
-
 def test_create_character():
-    expected = {'id': None, 'accountId': TEST_ACCOUNT_ID, 'name': TEST_NAME}
-    actual = characters.create(account_id=TEST_ACCOUNT_ID, name=TEST_NAME)
+    expected = {
+        'id': None,
+        'accountId': TEST_ACCOUNT_ID,
+        'name': TEST_NAME,
+        'abilities': {
+            'strength': 5,
+            'endurance': 5,
+            'agility': 5,
+            'accuracy': 5
+        }
+    }
+    actual = characters.create(
+        account_id=TEST_ACCOUNT_ID,
+        name=TEST_NAME,
+        abilities=dict(strength=5, endurance=5, agility=5, accuracy=5)
+    )
     assert expected == actual
 
 
 def test_create_character_defaults():
-    expected = {'id': None, 'accountId': None, 'name': None}
+    expected = {
+        'id': None,
+        'accountId': None,
+        'name': None,
+        'abilities': {
+            'strength': 0,
+            'endurance': 0,
+            'agility': 0,
+            'accuracy': 0
+        }
+    }
     actual = characters.create()
     assert expected == actual
