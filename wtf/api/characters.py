@@ -63,6 +63,27 @@ def save(character):
     return character
 
 
+def allocate_ability_points(character, **kwargs):
+    '''Allocate a character's ability points.
+
+    If the character has insufficient ability points, a ValidationError will be
+        raised.
+    '''
+    character = character.copy()
+    strength = kwargs.get('strength', 0)
+    endurance = kwargs.get('endurance', 0)
+    agility = kwargs.get('agility', 0)
+    accuracy = kwargs.get('accuracy', 0)
+    character.get('abilities')['strength'] += strength
+    character.get('abilities')['endurance'] += endurance
+    character.get('abilities')['agility'] += agility
+    character.get('abilities')['accuracy'] += accuracy
+    character['ability_points'] -= strength + endurance + agility + accuracy
+    if character['ability_points'] < 0:
+        raise ValidationError('Insufficient ability points')
+    return character
+
+
 def validate(character):
     '''Validate a character.
 
@@ -100,11 +121,13 @@ def create(**kwargs):
             endurance: increases defense and health
             agility: increases evasion and attack speed
             accuracy: increases normal and critical attack chance
+        ability_points: consumed in order to increase a character's abilities
     '''
     character_id = kwargs.get('id')
     account_id = kwargs.get('account_id')
     name = kwargs.get('name')
     abilities = kwargs.get('abilities', {})
+    ability_points = kwargs.get('ability_points', 0)
     return {
         'id': character_id,
         'accountId': account_id,
@@ -114,5 +137,6 @@ def create(**kwargs):
             'endurance': abilities.get('endurance', 0),
             'agility': abilities.get('agility', 0),
             'accuracy': abilities.get('accuracy', 0)
-        }
+        },
+        'ability_points': ability_points
     }

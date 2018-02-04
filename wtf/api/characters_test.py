@@ -123,6 +123,43 @@ def test_find_by_account_id():
     assert expected == actual
 
 
+def test_allocate_ability_points():
+    expected = {
+        'abilities': dict(strength=6, endurance=7, agility=8, accuracy=9),
+        'ability_points': 5
+    }
+    character = {
+        'abilities': dict(strength=5, endurance=5, agility=5, accuracy=5),
+        'ability_points': 15
+    }
+    actual = characters.allocate_ability_points(
+        character,
+        strength=1,
+        endurance=2,
+        agility=3,
+        accuracy=4
+    )
+    assert expected == actual
+
+
+def test_allocate_ability_points_insufficient():
+    expected = ['Insufficient ability points']
+    character = {
+        'abilities': dict(strength=5, endurance=5, agility=5, accuracy=5),
+        'ability_points': 3
+    }
+    with pytest.raises(ValidationError) as error:
+        characters.allocate_ability_points(
+            character,
+            strength=1,
+            endurance=1,
+            agility=1,
+            accuracy=1
+        )
+    actual = error.value.errors
+    assert expected == actual
+
+
 def test_create_character():
     expected = {
         'id': None,
@@ -133,12 +170,14 @@ def test_create_character():
             'endurance': 5,
             'agility': 5,
             'accuracy': 5
-        }
+        },
+        'ability_points': 5
     }
     actual = characters.create(
         account_id=TEST_ACCOUNT_ID,
         name=TEST_NAME,
-        abilities=dict(strength=5, endurance=5, agility=5, accuracy=5)
+        abilities=dict(strength=5, endurance=5, agility=5, accuracy=5),
+        ability_points=5
     )
     assert expected == actual
 
@@ -153,7 +192,8 @@ def test_create_character_defaults():
             'endurance': 0,
             'agility': 0,
             'accuracy': 0
-        }
+        },
+        'ability_points': 0
     }
     actual = characters.create()
     assert expected == actual
