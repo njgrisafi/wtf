@@ -4,7 +4,8 @@ wtf.http
 HTTP-related application and testing helpers.
 '''
 from json import loads as json_loads, dumps as json_dumps
-from flask import make_response, jsonify
+from flask import make_response, jsonify, request
+from wtf.errors import ValidationError
 
 
 def success(body=None, json=None):
@@ -17,6 +18,18 @@ def bad_request(body=None, json=None):
     '''Create a 400 Bad Request response'''
     body = jsonify(json) if json else body
     return make_response(body, 400)
+
+
+def validate(content_type=None):
+    '''Validate a request.
+
+    Returns a list of validation errors, if any.
+    '''
+    errors = []
+    if content_type and request.content_type != content_type:
+        errors.append('Content-Type header must be: %s' % content_type)
+    if errors:
+        raise ValidationError(errors=errors)
 
 
 def create_test_client(app):
