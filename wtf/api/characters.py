@@ -105,7 +105,7 @@ def validate(character):
 
 
 def find_by_account_id(account_id):
-    '''Find a characters owned by an account with the given account ID.'''
+    '''Find a characters owned by an account with the provided account ID.'''
     return IN_MEMORY_CHARACTERS.get('by_account_id').get(account_id, [])
 
 
