@@ -22,7 +22,7 @@ def test_client():
 
 @patch('wtf.api.characters.save')
 @patch('wtf.api.characters.find_by_account_id')
-def test_route_create_character(
+def test_characters_route_create(
         mock_find_by_account_id,
         mock_save,
         test_client
@@ -37,7 +37,7 @@ def test_route_create_character(
     response.assert_body(expected)
 
 
-def test_route_create_character_content_type_not_json(test_client):
+def test_characters_route_create_content_type_not_json(test_client):
     response = test_client.post(headers={'Content-Type': 'text/html'})
     response.assert_status_code(400)
     response.assert_body({
@@ -46,7 +46,7 @@ def test_route_create_character_content_type_not_json(test_client):
 
 
 @patch('wtf.api.characters.validate')
-def test_route_create_character_invalid(mock_validate, test_client):
+def test_characters_route_create_invalid(mock_validate, test_client):
     mock_validate.side_effect = ValidationError(
         errors=['foo', 'bar', 'baz']
     )
@@ -57,7 +57,7 @@ def test_route_create_character_invalid(mock_validate, test_client):
 
 @patch('wtf.api.characters.uuid4')
 @patch('wtf.api.characters.validate')
-def test_save_character_insert(mock_validate, mock_uuid4):
+def test_characters_save_insert(mock_validate, mock_uuid4):
     expected = {'id': TEST_ID}
     mock_validate.return_value = None
     mock_uuid4.return_value = TEST_ID
@@ -68,7 +68,7 @@ def test_save_character_insert(mock_validate, mock_uuid4):
 
 
 @patch('wtf.api.characters.validate')
-def test_save_character_update(mock_validate):
+def test_characters_save_update(mock_validate):
     expected = {'id': TEST_ID}
     mock_validate.return_value = None
     by_id = characters.IN_MEMORY_CHARACTERS['by_id']
@@ -78,44 +78,30 @@ def test_save_character_update(mock_validate):
     assert expected == by_id[TEST_ID]
 
 
-def test_validate_missing_fields():
-    expected = [
-        'Missing required field: accountId',
-        'Missing required field: name'
-    ]
-    with pytest.raises(ValidationError) as e:
-        characters.validate({})
-    actual = e.value.errors
-    assert expected == actual
-
-
-def test_validate_missing_account_id():
-    expected = ['Missing required field: accountId']
+def test_characters_validate_missing_account_id():
+    expected = 'Missing required field: accountId'
     with pytest.raises(ValidationError) as e:
         characters.validate({'name': 'foobar'})
-    actual = e.value.errors
-    assert expected == actual
+    assert expected in e.value.errors
 
 
-def test_validate_missing_name():
-    expected = ['Missing required field: name']
+def test_characters_validate_missing_name():
+    expected = 'Missing required field: name'
     with pytest.raises(ValidationError) as e:
         characters.validate({'accountId': 'foobar'})
-    actual = e.value.errors
-    assert expected == actual
+    assert expected in e.value.errors
 
 
 @patch('wtf.api.characters.find_by_account_id')
-def test_validate_duplicate_name(mock_find_by_account_id):
-    expected = ['Duplicate character name: foo']
+def test_characters_validate_duplicate_name(mock_find_by_account_id):
+    expected = 'Duplicate character name: foo'
     mock_find_by_account_id.return_value = [{'name': 'foo'}]
     with pytest.raises(ValidationError) as e:
         characters.validate({'accountId': TEST_ACCOUNT_ID, 'name': 'foo'})
-    actual = e.value.errors
-    assert expected == actual
+    assert expected in e.value.errors
 
 
-def test_find_by_account_id():
+def test_characters_find_by_account_id():
     expected = ['one', 'two', 'three']
     by_account_id = characters.IN_MEMORY_CHARACTERS['by_account_id']
     by_account_id[TEST_ACCOUNT_ID] = expected
@@ -123,7 +109,7 @@ def test_find_by_account_id():
     assert expected == actual
 
 
-def test_allocate_ability_points():
+def test_characters_allocate_ability_points():
     expected = {
         'abilities': dict(strength=6, endurance=7, agility=8, accuracy=9),
         'ability_points': 5
@@ -142,13 +128,13 @@ def test_allocate_ability_points():
     assert expected == actual
 
 
-def test_allocate_ability_points_insufficient():
-    expected = ['Insufficient ability points']
+def test_characters_allocate_ability_points_insufficient():
+    expected = 'Insufficient ability points'
     character = {
         'abilities': dict(strength=5, endurance=5, agility=5, accuracy=5),
         'ability_points': 3
     }
-    with pytest.raises(ValidationError) as error:
+    with pytest.raises(ValidationError) as e:
         characters.allocate_ability_points(
             character,
             strength=1,
@@ -156,11 +142,10 @@ def test_allocate_ability_points_insufficient():
             agility=1,
             accuracy=1
         )
-    actual = error.value.errors
-    assert expected == actual
+    assert expected in e.value.errors
 
 
-def test_create_character():
+def test_characters_create():
     expected = {
         'id': None,
         'accountId': TEST_ACCOUNT_ID,
@@ -182,7 +167,7 @@ def test_create_character():
     assert expected == actual
 
 
-def test_create_character_defaults():
+def test_characters_create_defaults():
     expected = {
         'id': None,
         'accountId': None,

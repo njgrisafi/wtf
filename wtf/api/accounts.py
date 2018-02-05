@@ -7,6 +7,7 @@ from uuid import uuid4
 from flask import Blueprint, request
 from wtf import http
 from wtf.api import util
+from wtf.errors import ValidationError
 
 
 BLUEPRINT = Blueprint('accounts', __name__)
@@ -17,7 +18,7 @@ IN_MEMORY_ACCOUNTS = {
 
 
 @BLUEPRINT.route('', methods=['POST'])
-def route_create_account():
+def route_create():
     '''Handle account creation requests.
 
     $ curl \
@@ -30,41 +31,65 @@ def route_create_account():
             "password": "..."
         }'
     '''
-    body = request.get_json(silent=True) or {}
-    errors = []
-    if request.content_type != 'application/json':
-        errors.append('Content-Type header must be: application/json')
-    else:
-        if 'email' not in body:
-            errors.append('Missing required field: email')
-        elif find_by_email(body.get('email')) is not None:
-            errors.append('Email address already registered')
-        if 'password' not in body:
-            errors.append('Missing required field: password')
     response = None
-    if errors:
-        response = http.bad_request(json={'errors': errors})
-    else:
+    try:
+        http.validate(content_type='application/json')
+        body = request.get_json(silent=True) or {}
         account = save(create(
             email=body.get('email'),
             password=body.get('password')
         ))
         response = http.success(json=account)
+    except ValidationError as error:
+        response = http.bad_request(json={'errors': error.errors})
     return response
 
 
+def save(account):
+    '''Persist an account.
+
+    If the account already exists, it will be updated; otherwise, it will be
+        created.
+    '''
+    account = account.copy()
+    validate(account)
+    if account.get('id') is None:
+        account['id'] = uuid4()
+    IN_MEMORY_ACCOUNTS.get('by_id')[account.get('id')] = account
+    IN_MEMORY_ACCOUNTS.get('by_email')[account.get('email')] = account
+    return account
+
+
+def validate(account):
+    '''Validate an account.
+
+    Raises a ValidationError if the provided account is invalid..
+    '''
+    email = account.get('email')
+    password = account.get('password')
+    errors = []
+    if not email:
+        errors.append('Missing required field: email')
+    elif find_by_email(email) is not None:
+        errors.append('Email address already registered')
+    if not password:
+        errors.append('Missing required field: password')
+    if errors:
+        raise ValidationError(errors=errors)
+
+
 def find_by_id(account_id):
-    '''Find an account with the given id.'''
+    '''Find an account with the provided id.'''
     return IN_MEMORY_ACCOUNTS.get('by_id').get(account_id)
 
 
 def find_by_email(email):
-    '''Find an account with the given email address.'''
+    '''Find an account with the provided email address.'''
     return IN_MEMORY_ACCOUNTS.get('by_email').get(email)
 
 
 def find_by_email_password(email, password):
-    '''Find an account with the given email address and password.
+    '''Find an account with the provided email address and password.
 
     This function is intended to be used with account
     authentication - it will return `None` if the supplied email and
@@ -75,19 +100,6 @@ def find_by_email_password(email, password):
     if account is not None:
         if not util.salt_and_hash_compare(password, account.get('password')):
             account = None
-    return account
-
-
-def save(account):
-    '''Persist an account.
-
-    If the account already exists, it will be updated; otherwise, it will be
-        created.
-    '''
-    if account.get('id') is None:
-        account['id'] = uuid4()
-    IN_MEMORY_ACCOUNTS.get('by_id')[account.get('id')] = account
-    IN_MEMORY_ACCOUNTS.get('by_email')[account.get('email')] = account
     return account
 
 

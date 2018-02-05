@@ -3,6 +3,7 @@ import pytest
 from mock import patch
 from wtf.api import accounts
 from wtf.api.app import create_app
+from wtf.errors import ValidationError
 from wtf.http import create_test_client
 
 
@@ -15,11 +16,6 @@ TEST_PASSWORD_HASH = (
 )
 
 
-def setup_function():
-    accounts.IN_MEMORY_ACCOUNTS['by_id'] = {}
-    accounts.IN_MEMORY_ACCOUNTS['by_email'] = {}
-
-
 @pytest.fixture
 def test_client():
     client = create_test_client(create_app())
@@ -29,17 +25,14 @@ def test_client():
 
 
 @patch('wtf.api.accounts.save')
-@patch('wtf.api.accounts.create')
 @patch('wtf.api.accounts.find_by_email')
-def test_route_create_account(
+def test_accounts_route_create(
         mock_find_by_email,
-        mock_create,
         mock_save,
         test_client
     ):
-    expected = {'foo': 'bar'}
+    expected = 'foobar'
     mock_find_by_email.return_value = None
-    mock_create.return_value = None
     mock_save.return_value = expected
     response = test_client.post(
         body={'email': TEST_EMAIL, 'password': TEST_PASSWORD_PLAIN}
@@ -48,7 +41,7 @@ def test_route_create_account(
     response.assert_body(expected)
 
 
-def test_route_create_account_content_type_not_json(test_client):
+def test_accounts_route_create_content_type_not_json(test_client):
     response = test_client.post(headers={'Content-Type': 'text/html'})
     response.assert_status_code(400)
     response.assert_body({
@@ -56,40 +49,68 @@ def test_route_create_account_content_type_not_json(test_client):
     })
 
 
-def test_route_create_account_missing_fields(test_client):
-    response = test_client.post(body={})
+@patch('wtf.api.accounts.validate')
+def test_accounts_route_create_invalid(mock_validate, test_client):
+    mock_validate.side_effect = ValidationError(
+        errors=['foo', 'bar', 'baz']
+    )
+    response = test_client.post()
     response.assert_status_code(400)
-    response.assert_body({
-        'errors': [
-            'Missing required field: email',
-            'Missing required field: password'
-        ]
-    })
+    response.assert_body({'errors': ['foo', 'bar', 'baz']})
 
 
-def test_route_create_account_missing_email(test_client):
-    response = test_client.post(body={'password': TEST_PASSWORD_PLAIN})
-    response.assert_status_code(400)
-    response.assert_body({'errors': ['Missing required field: email']})
+@patch('wtf.api.accounts.uuid4')
+@patch('wtf.api.accounts.validate')
+def test_accounts_save_insert(mock_validate, mock_uuid4):
+    expected = {'id': TEST_ID, 'email': TEST_EMAIL}
+    mock_validate.return_value = None
+    mock_uuid4.return_value = TEST_ID
+    by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
+    by_email = accounts.IN_MEMORY_ACCOUNTS['by_email']
+    actual = accounts.save({'id': None, 'email': TEST_EMAIL})
+    assert expected == actual
+    assert expected == by_id[TEST_ID]
+    assert expected == by_email[TEST_EMAIL]
 
 
-def test_route_create_account_missing_password(test_client):
-    response = test_client.post(body={'email': TEST_EMAIL})
-    response.assert_status_code(400)
-    response.assert_body({'errors': ['Missing required field: password']})
+@patch('wtf.api.accounts.validate')
+def test_accounts_save_update(mock_validate):
+    expected = {'id': TEST_ID, 'email': TEST_EMAIL}
+    mock_validate.return_value = None
+    by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
+    by_email = accounts.IN_MEMORY_ACCOUNTS['by_email']
+    by_id[TEST_ID] = 'foobar1'
+    by_email[TEST_EMAIL] = 'foobar2'
+    actual = accounts.save({'id': TEST_ID, 'email': TEST_EMAIL})
+    assert expected == actual
+    assert expected == by_id[TEST_ID]
+    assert expected == by_email[TEST_EMAIL]
+
+
+def test_accounts_validate_missing_email():
+    expected = 'Missing required field: email'
+    with pytest.raises(ValidationError) as e:
+        accounts.validate({'password': 'foobar'})
+    assert expected in e.value.errors
 
 
 @patch('wtf.api.accounts.find_by_email')
-def test_route_create_account_email_exists(mock_find_by_email, test_client):
-    mock_find_by_email.return_value = {}
-    response = test_client.post(
-        body={'email': TEST_EMAIL, 'password': TEST_PASSWORD_PLAIN}
-    )
-    response.assert_status_code(400)
-    response.assert_body({'errors': ['Email address already registered']})
+def test_accounts_validate_email_registered(mock_find_by_email):
+    expected = 'Email address already registered'
+    mock_find_by_email.return_value = 'foobar'
+    with pytest.raises(ValidationError) as e:
+        accounts.validate({'email': 'foobar'})
+    assert expected in e.value.errors
 
 
-def test_find_account_by_id():
+def test_accounts_validate_missing_password():
+    expected = 'Missing required field: password'
+    with pytest.raises(ValidationError) as e:
+        accounts.validate({'email': 'foobar'})
+    assert expected in e.value.errors
+
+
+def test_accounts_find_by_id():
     expected = 'foobar'
     by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
     by_id[TEST_ID] = expected
@@ -97,7 +118,7 @@ def test_find_account_by_id():
     assert accounts.find_by_id('asdf') is None
 
 
-def test_find_account_by_email():
+def test_accounts_find_by_email():
     expected = 'foobar'
     by_email = accounts.IN_MEMORY_ACCOUNTS['by_email']
     by_email[TEST_EMAIL] = expected
@@ -107,7 +128,7 @@ def test_find_account_by_email():
 
 @patch('wtf.api.accounts.util.salt_and_hash_compare')
 @patch('wtf.api.accounts.find_by_email')
-def test_find_account_by_email_password(
+def test_accounts_find_by_email_password(
         mock_find_by_email,
         mock_salt_and_hash_compare
     ):
@@ -120,7 +141,7 @@ def test_find_account_by_email_password(
 
 @patch('wtf.api.accounts.util.salt_and_hash_compare')
 @patch('wtf.api.accounts.find_by_email')
-def test_find_account_by_email_password_incorrect_password(
+def test_accounts_find_by_email_password_incorrect_password(
         mock_find_by_email,
         mock_salt_and_hash_compare
     ):
@@ -131,38 +152,14 @@ def test_find_account_by_email_password_incorrect_password(
 
 
 @patch('wtf.api.accounts.find_by_email')
-def test_find_account_by_email_password_not_found(mock_find_by_email):
+def test_accounts_find_by_email_password_not_found(mock_find_by_email):
     mock_find_by_email.return_value = None
     account = accounts.find_by_email_password('', '')
     assert account is None
 
 
-@patch('wtf.api.accounts.uuid4')
-def test_save_account_insert(mock_uuid4):
-    expected = {'id': TEST_ID, 'email': TEST_EMAIL}
-    mock_uuid4.return_value = TEST_ID
-    by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
-    by_email = accounts.IN_MEMORY_ACCOUNTS['by_email']
-    actual = accounts.save({'id': None, 'email': TEST_EMAIL})
-    assert expected == actual
-    assert expected == by_id[TEST_ID]
-    assert expected == by_email[TEST_EMAIL]
-
-
-def test_save_account_update():
-    expected = {'id': TEST_ID, 'email': TEST_EMAIL}
-    by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
-    by_email = accounts.IN_MEMORY_ACCOUNTS['by_email']
-    by_id[TEST_ID] = 'foobar1'
-    by_email[TEST_EMAIL] = 'foobar2'
-    actual = accounts.save({'id': TEST_ID, 'email': TEST_EMAIL})
-    assert expected == actual
-    assert expected == by_id[TEST_ID]
-    assert expected == by_email[TEST_EMAIL]
-
-
 @patch('wtf.api.accounts.util.salt_and_hash')
-def test_create_account(mock_salt_and_hash):
+def test_accounts_create(mock_salt_and_hash):
     expected = {
         'id': TEST_ID,
         'email': TEST_EMAIL,
@@ -177,7 +174,7 @@ def test_create_account(mock_salt_and_hash):
     assert expected == actual
 
 
-def test_create_account_defaults():
+def test_accounts_create_defaults():
     expected = {
         'id': None,
         'email': None,
