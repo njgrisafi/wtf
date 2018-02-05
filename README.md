@@ -3,6 +3,7 @@
 War Torn Faith is a browser-based text RPG.
 
 [![Build Status](https://travis-ci.org/mrpudn/wtf.svg?branch=master)](https://travis-ci.org/mrpudn/wtf)
+[![Gitter Chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/wartornfaith/Lobby)
 
 ## getting started
 
