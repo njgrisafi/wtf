@@ -110,7 +110,7 @@ def find_by_account_id(account_id):
 
 
 def create(**kwargs):
-    '''Create an character.
+    '''Create a character.
 
     Characters have the following properties:
         id: a UUID (Universally Unique Identifier) for the character
