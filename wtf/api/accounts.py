@@ -45,6 +45,25 @@ def route_create():
     return response
 
 
+@BLUEPRINT.route('/<account_id>', methods=['GET'])
+def route_get(account_id):
+    '''Handle account retrieval by ID requests.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/accounts/<account_id> \
+        --write-out "\n"
+    '''
+    account = IN_MEMORY_ACCOUNTS.get('by_id').get(account_id)
+    response = None
+    if account:
+        account.pop('password')
+        response = http.success(json={'account': account})
+    else:
+        response = http.not_found(json={'errors': ['Account not found']})
+    return response
+
+
 def save(account):
     '''Persist an account.
 
@@ -54,7 +73,7 @@ def save(account):
     account = account.copy()
     validate(account)
     if account.get('id') is None:
-        account['id'] = uuid4()
+        account['id'] = str(uuid4())
     IN_MEMORY_ACCOUNTS.get('by_id')[account.get('id')] = account
     IN_MEMORY_ACCOUNTS.get('by_email')[account.get('email')] = account
     return account

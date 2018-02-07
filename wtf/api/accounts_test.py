@@ -16,6 +16,11 @@ TEST_PASSWORD_HASH = (
 )
 
 
+def setup_function():
+    accounts.IN_MEMORY_ACCOUNTS['by_id'] = {}
+    accounts.IN_MEMORY_ACCOUNTS['by_email'] = {}
+
+
 @pytest.fixture
 def test_client():
     client = create_test_client(create_app())
@@ -57,6 +62,22 @@ def test_accounts_route_create_invalid(mock_validate, test_client):
     response = test_client.post()
     response.assert_status_code(400)
     response.assert_body({'errors': ['foo', 'bar', 'baz']})
+
+
+def test_accounts_route_get_by_id(test_client):
+    expected = {'account': {'foo': 'bar'}}
+    by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
+    by_id[TEST_ID] = {'foo': 'bar', 'password': 'asdf'}
+    response = test_client.get(path='/%s' % TEST_ID)
+    response.assert_status_code(200)
+    response.assert_body(expected)
+
+
+def test_accounts_route_get_by_id_not_found(test_client):
+    expected = {'errors': ['Account not found']}
+    response = test_client.get(path='/%s' % TEST_ID)
+    response.assert_status_code(404)
+    response.assert_body(expected)
 
 
 @patch('wtf.api.accounts.uuid4')
