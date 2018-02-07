@@ -12,6 +12,11 @@ TEST_ACCOUNT_ID = '1a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'
 TEST_NAME = 'foobar'
 
 
+def setup_function():
+    characters.IN_MEMORY_CHARACTERS['by_id'] = {}
+    characters.IN_MEMORY_CHARACTERS['by_account_id'] = {}
+
+
 @pytest.fixture
 def test_client():
     client = create_test_client(create_app())
@@ -53,6 +58,22 @@ def test_characters_route_create_invalid(mock_validate, test_client):
     response = test_client.post()
     response.assert_status_code(400)
     response.assert_body({'errors': ['foo', 'bar', 'baz']})
+
+
+def test_characters_route_get_by_id(test_client):
+    expected = {'character': {'foo': 'bar'}}
+    by_id = characters.IN_MEMORY_CHARACTERS['by_id']
+    by_id[TEST_ID] = {'foo': 'bar'}
+    response = test_client.get(path='/%s' % TEST_ID)
+    response.assert_status_code(200)
+    response.assert_body(expected)
+
+
+def test_characters_route_get_by_id_not_found(test_client):
+    expected = {'errors': ['Character not found']}
+    response = test_client.get(path='/%s' % TEST_ID)
+    response.assert_status_code(404)
+    response.assert_body(expected)
 
 
 @patch('wtf.api.characters.uuid4')
