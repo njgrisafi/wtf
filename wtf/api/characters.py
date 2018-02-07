@@ -44,6 +44,24 @@ def route_create():
     return response
 
 
+@BLUEPRINT.route('/<character_id>', methods=['GET'])
+def route_get(character_id):
+    '''Handle character retrieval by ID requests.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/characters/<character_id> \
+        --write-out "\n"
+    '''
+    character = IN_MEMORY_CHARACTERS.get('by_id').get(character_id)
+    response = None
+    if character:
+        response = http.success(json={'character': character})
+    else:
+        response = http.not_found(json={'errors': ['Character not found']})
+    return response
+
+
 def save(character):
     '''Persist a character.
 
