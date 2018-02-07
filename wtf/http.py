@@ -20,6 +20,12 @@ def bad_request(body=None, json=None):
     return make_response(body, 400)
 
 
+def not_found(body=None, json=None):
+    '''Create a 404 Not Found response'''
+    body = jsonify(json) if json else body
+    return make_response(body, 404)
+
+
 def validate(content_type=None):
     '''Validate a request.
 
@@ -68,6 +74,16 @@ class Client(object):
             path=path,
             headers=headers,
             data=data
+        )
+        return AssertableResponse(response)
+
+    def get(self, **kwargs):
+        '''Send a GET request'''
+        path = '%s%s' % (self.root_path, kwargs.get('path', ''))
+        headers = kwargs.get('headers', self.default_headers)
+        response = self.test_client.get(
+            path=path,
+            headers=headers
         )
         return AssertableResponse(response)
 
