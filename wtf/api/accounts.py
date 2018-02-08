@@ -57,7 +57,8 @@ def route_get(account_id):
     account = IN_MEMORY_ACCOUNTS.get('by_id').get(account_id)
     response = None
     if account:
-        account.pop('password')
+        account = account.copy()
+        pwd = account.pop('password')
         response = http.success(json={'account': account})
     else:
         response = http.not_found(json={'errors': ['Account not found']})
