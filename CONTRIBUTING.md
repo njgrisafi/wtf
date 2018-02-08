@@ -57,21 +57,23 @@ For more help with pipenv:
 $ pipenv --help
 ```
 
-This project can be configured by setting the following environment variables:
+This project can be configured by setting the following environment variables (optional):
 
 | NAME          | DESCRIPTION           | DEFAULT VALUE
 | ------------- |:---------------------:| ---------:|
-| WTF_HOST      | sets WTF package host | localhost |
-| WTF_PORT      | sets WTF package port | 5000      |
-| WTF_API_HOST  | sets WTF API host     | localhost |
-| WTF_API_HOST  | sets WTF API host     | 5000      |
-| WTF_WEB_HOST  | sets WTF WEB host     | localhost |
-| WTF_WEB_HOST  | sets WTF WEB PORT     | 5000      |
+| WTF_HOST      | sets package host | localhost |
+| WTF_PORT      | sets package port | 5000      |
+| WTF_API_HOST  | sets API host     | localhost |
+| WTF_API_HOST  | sets API host     | 5000      |
+| WTF_WEB_HOST  | sets WEB host     | localhost |
+| WTF_WEB_HOST  | sets WEB PORT     | 5000      |
 
 To set an environment variable from an unix shell:
 ```bash
-$ export {NAME}={VALUE}
+$ export NAME=VALUE
 ```
+
+You can also edit your local Vagrantfile to set environment variables for the VM.
 
 ## developing
 
