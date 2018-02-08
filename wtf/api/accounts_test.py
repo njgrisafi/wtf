@@ -17,8 +17,8 @@ TEST_PASSWORD_HASH = (
 
 
 def setup_function():
-    accounts.IN_MEMORY_ACCOUNTS['by_id'] = {}
-    accounts.IN_MEMORY_ACCOUNTS['by_email'] = {}
+    accounts.REPO_ACCOUNTS['by_id'] = {}
+    accounts.REPO_ACCOUNTS['by_email'] = {}
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ def test_accounts_route_create_invalid(mock_validate, test_client):
 
 def test_accounts_route_get_by_id(test_client):
     expected = {'account': {'foo': 'bar'}}
-    by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
+    by_id = accounts.REPO_ACCOUNTS['by_id']
     by_id[TEST_ID] = {'foo': 'bar', 'password': 'asdf'}
     response = test_client.get(path='/%s' % TEST_ID)
     response.assert_status_code(200)
@@ -89,8 +89,8 @@ def test_accounts_save_insert(mock_validate, mock_uuid4):
     expected = {'id': TEST_ID, 'email': TEST_EMAIL}
     mock_validate.return_value = None
     mock_uuid4.return_value = TEST_ID
-    by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
-    by_email = accounts.IN_MEMORY_ACCOUNTS['by_email']
+    by_id = accounts.REPO_ACCOUNTS['by_id']
+    by_email = accounts.REPO_ACCOUNTS['by_email']
     actual = accounts.save({'id': None, 'email': TEST_EMAIL})
     assert expected == actual
     assert expected == by_id[TEST_ID]
@@ -101,8 +101,8 @@ def test_accounts_save_insert(mock_validate, mock_uuid4):
 def test_accounts_save_update(mock_validate):
     expected = {'id': TEST_ID, 'email': TEST_EMAIL}
     mock_validate.return_value = None
-    by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
-    by_email = accounts.IN_MEMORY_ACCOUNTS['by_email']
+    by_id = accounts.REPO_ACCOUNTS['by_id']
+    by_email = accounts.REPO_ACCOUNTS['by_email']
     by_id[TEST_ID] = 'foobar1'
     by_email[TEST_EMAIL] = 'foobar2'
     actual = accounts.save({'id': TEST_ID, 'email': TEST_EMAIL})
@@ -136,7 +136,7 @@ def test_accounts_validate_missing_password():
 
 def test_accounts_find_by_id():
     expected = 'foobar'
-    by_id = accounts.IN_MEMORY_ACCOUNTS['by_id']
+    by_id = accounts.REPO_ACCOUNTS['by_id']
     by_id[TEST_ID] = expected
     assert accounts.find_by_id(TEST_ID) == expected
     assert accounts.find_by_id('asdf') is None
@@ -144,7 +144,7 @@ def test_accounts_find_by_id():
 
 def test_accounts_find_by_email():
     expected = 'foobar'
-    by_email = accounts.IN_MEMORY_ACCOUNTS['by_email']
+    by_email = accounts.REPO_ACCOUNTS['by_email']
     by_email[TEST_EMAIL] = expected
     assert accounts.find_by_email(TEST_EMAIL) == expected
     assert accounts.find_by_email('asdf') is None

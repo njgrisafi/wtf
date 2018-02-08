@@ -11,7 +11,7 @@ from wtf.errors import ValidationError
 
 
 BLUEPRINT = Blueprint('accounts', __name__)
-IN_MEMORY_ACCOUNTS = {
+REPO_ACCOUNTS = {
     'by_id': {},
     'by_email': {}
 }
@@ -54,7 +54,7 @@ def route_get(account_id):
         --url http://localhost:5000/api/accounts/<account_id> \
         --write-out "\n"
     '''
-    account = IN_MEMORY_ACCOUNTS.get('by_id').get(account_id)
+    account = REPO_ACCOUNTS.get('by_id').get(account_id)
     response = None
     if account:
         account = account.copy()
@@ -75,8 +75,8 @@ def save(account):
     validate(account)
     if account.get('id') is None:
         account['id'] = str(uuid4())
-    IN_MEMORY_ACCOUNTS.get('by_id')[account.get('id')] = account
-    IN_MEMORY_ACCOUNTS.get('by_email')[account.get('email')] = account
+    REPO_ACCOUNTS.get('by_id')[account.get('id')] = account
+    REPO_ACCOUNTS.get('by_email')[account.get('email')] = account
     return account
 
 
@@ -100,12 +100,12 @@ def validate(account):
 
 def find_by_id(account_id):
     '''Find an account with the provided id.'''
-    return IN_MEMORY_ACCOUNTS.get('by_id').get(account_id)
+    return REPO_ACCOUNTS.get('by_id').get(account_id)
 
 
 def find_by_email(email):
     '''Find an account with the provided email address.'''
-    return IN_MEMORY_ACCOUNTS.get('by_email').get(email)
+    return REPO_ACCOUNTS.get('by_email').get(email)
 
 
 def find_by_email_password(email, password):
