@@ -57,6 +57,7 @@ def route_get(account_id):
     account = IN_MEMORY_ACCOUNTS.get('by_id').get(account_id)
     response = None
     if account:
+        account = account.copy()
         account.pop('password')
         response = http.success(json={'account': account})
     else:
