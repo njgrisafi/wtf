@@ -23,9 +23,9 @@ We ask that you include a meaningful description in your pull request, tag any i
 
 ## architecture
 
-This project has a simple architecture: a **relational database**, sitting behind a **RESTful API**, which is consumed by a **web application**.
+This project has a simple architecture: a **database**, sitting behind a **RESTful API**, which is consumed by a **web application**.
 
-The *API* is the only component that performs direct operations against the *database* (i.e. `SELECT`, `CREATE`, `INSERT`, `UPDATE`, and `DELETE` queries). Clients (specifically the *web application*) connect to the *API* via HTTP (`GET`, `POST`, `PUT`, `PATCH`, and `DELETE` methods) in order to indirectly manipulate the data in the *database* and carry out the business logic of the application. Additional layers of authentication, authorization, security, validation, caching, etc. that are beyond the scope of the *database* are built into the *API*.
+The *API* is the only component that performs direct CRUD (Create-Read-Update-Delete) operations against the *database*. Clients (specifically the *web application*) connect to the *API* via HTTP (`GET`, `POST`, `PUT`, `PATCH`, and `DELETE` methods) in order to indirectly manipulate the data in the *database* and carry out the business logic of the application. Additional layers of authentication, authorization, security, validation, caching, etc. that are beyond the scope of the *database* are built into the *API*.
 
 Separating this functionality within the *API* component, instead of intermingling it with the *web application* has a few important benefits, including:
   1. **reusability** - thanks to the ubiquity of the HTTP protocol, the *API* can be reused by a wide variety of clients, including Android apps, iPhone apps, third party systems, etc. Additionally, the internal workings of the *API* and the components behind it (i.e. the *database*) can be changed with minimal or no impact to the clients using the *API* (ex. swapping the database from one vendor to another or completely rewriting the *API* in a different programming language) - so long as the request/response contracts remain the same, these details are of no concern to clients.
@@ -96,6 +96,16 @@ Or, you can start the bundled app (API + web app):
 ```bash
 $ python -m wtf
 ```
+
+## environment variables
+
+The following environment variables affect how this project will behave:
+- `WTF_HOST`: The hostname that the bundled app will listen on
+- `WTF_PORT`: The port that the bundled app will bind to
+- `WTF_API_HOST`: The hostname that the API will listen on
+- `WTF_API_PORT`: The port that the API will bind to
+- `WTF_WEB_HOST`: The hostname that the web app will listen on
+- `WTF_WEB_PORT`: The port that the web app will bind to
 
 ## continuous integration
 

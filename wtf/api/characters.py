@@ -10,9 +10,9 @@ from wtf.errors import ValidationError
 
 
 BLUEPRINT = Blueprint('characters', __name__)
-IN_MEMORY_CHARACTERS = {
+REPO_CHARACTERS = {
     'by_id': {},
-    'by_account_id': {}
+    'by_account': {}
 }
 
 
@@ -26,7 +26,7 @@ def route_create():
         --header "Content-Type: application/json" \
         --write-out "\n" \
         --data '{
-            "accountId": "...",
+            "account": "...",
             "name": "..."
         }'
     '''
@@ -35,7 +35,7 @@ def route_create():
         http.validate(content_type='application/json')
         body = request.get_json(silent=True) or {}
         character = save(create(
-            account_id=body.get('accountId'),
+            account=body.get('account'),
             name=body.get('name')
         ))
         response = http.success(json=character)
@@ -53,7 +53,7 @@ def route_get(character_id):
         --url http://localhost:5000/api/characters/<character_id> \
         --write-out "\n"
     '''
-    character = IN_MEMORY_CHARACTERS.get('by_id').get(character_id)
+    character = REPO_CHARACTERS.get('by_id').get(character_id)
     response = None
     if character:
         response = http.success(json={'character': character})
@@ -74,9 +74,9 @@ def save(character):
     validate(character)
     if character.get('id') is None:
         character['id'] = uuid4()
-    IN_MEMORY_CHARACTERS.get('by_id')[character.get('id')] = character
-    IN_MEMORY_CHARACTERS.get('by_account_id') \
-        .setdefault(character.get('accountId'), []) \
+    REPO_CHARACTERS.get('by_id')[character.get('id')] = character
+    REPO_CHARACTERS.get('by_account') \
+        .setdefault(character.get('account'), []) \
         .append(character)
     return character
 
@@ -88,16 +88,17 @@ def allocate_ability_points(character, **kwargs):
         raised.
     '''
     character = character.copy()
+    abilities = character.get('abilities')
     strength = kwargs.get('strength', 0)
     endurance = kwargs.get('endurance', 0)
     agility = kwargs.get('agility', 0)
     accuracy = kwargs.get('accuracy', 0)
-    character.get('abilities')['strength'] += strength
-    character.get('abilities')['endurance'] += endurance
-    character.get('abilities')['agility'] += agility
-    character.get('abilities')['accuracy'] += accuracy
-    character['ability_points'] -= strength + endurance + agility + accuracy
-    if character['ability_points'] < 0:
+    abilities['strength'] += strength
+    abilities['endurance'] += endurance
+    abilities['agility'] += agility
+    abilities['accuracy'] += accuracy
+    abilities['unallocated'] -= strength + endurance + agility + accuracy
+    if abilities.get('unallocated') < 0:
         raise ValidationError('Insufficient ability points')
     return character
 
@@ -107,24 +108,24 @@ def validate(character):
 
     Raises a ValidationError if the provided character is invalid..
     '''
-    account_id = character.get('accountId')
+    account = character.get('account')
     name = character.get('name')
     errors = []
-    if not account_id:
-        errors.append('Missing required field: accountId')
+    if not account:
+        errors.append('Missing required field: account')
     if not name:
         errors.append('Missing required field: name')
-    if account_id and name:
-        names = [c.get('name') for c in find_by_account_id(account_id)]
+    if account and name:
+        names = [c.get('name') for c in find_by_account(account)]
         if name in names:
             errors.append('Duplicate character name: %s' % name)
     if errors:
         raise ValidationError(errors=errors)
 
 
-def find_by_account_id(account_id):
+def find_by_account(account):
     '''Find a characters owned by an account with the provided account ID.'''
-    return IN_MEMORY_CHARACTERS.get('by_account_id').get(account_id, [])
+    return REPO_CHARACTERS.get('by_account').get(account, [])
 
 
 def create(**kwargs):
@@ -132,29 +133,28 @@ def create(**kwargs):
 
     Characters have the following properties:
         id: a UUID (Universally Unique Identifier) for the character
-        accountId: the ID of the account that owns the character
+        account: the ID of the account that owns the character
         name: the name of the character
         abilities:
+            unallocated: unallocated ability points
             strength: increases attack damage
             endurance: increases defense and health
             agility: increases evasion and attack speed
             accuracy: increases normal and critical attack chance
-        ability_points: consumed in order to increase a character's abilities
     '''
     character_id = kwargs.get('id')
-    account_id = kwargs.get('account_id')
+    account = kwargs.get('account')
     name = kwargs.get('name')
     abilities = kwargs.get('abilities', {})
-    ability_points = kwargs.get('ability_points', 0)
     return {
         'id': character_id,
-        'accountId': account_id,
+        'account': account,
         'name': name,
         'abilities': {
+            'unallocated': abilities.get('unallocated', 0),
             'strength': abilities.get('strength', 0),
             'endurance': abilities.get('endurance', 0),
             'agility': abilities.get('agility', 0),
             'accuracy': abilities.get('accuracy', 0)
-        },
-        'ability_points': ability_points
+        }
     }
