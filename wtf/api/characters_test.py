@@ -8,13 +8,13 @@ from wtf.http import create_test_client
 
 
 TEST_ID = '0a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'
-TEST_ACCOUNT_ID = '1a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'
+TEST_ACCOUNT = '1a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'
 TEST_NAME = 'foobar'
 
 
 def setup_function():
-    characters.IN_MEMORY_CHARACTERS['by_id'] = {}
-    characters.IN_MEMORY_CHARACTERS['by_account_id'] = {}
+    characters.REPO_CHARACTERS['by_id'] = {}
+    characters.REPO_CHARACTERS['by_account'] = {}
 
 
 @pytest.fixture
@@ -26,17 +26,17 @@ def test_client():
 
 
 @patch('wtf.api.characters.save')
-@patch('wtf.api.characters.find_by_account_id')
+@patch('wtf.api.characters.find_by_account')
 def test_characters_route_create(
-        mock_find_by_account_id,
+        mock_find_by_account,
         mock_save,
         test_client
     ):
     expected = 'foobar'
-    mock_find_by_account_id.return_value = []
+    mock_find_by_account.return_value = []
     mock_save.return_value = expected
     response = test_client.post(
-        body={'accountId': TEST_ACCOUNT_ID, 'name': TEST_NAME}
+        body={'account': TEST_ACCOUNT, 'name': TEST_NAME}
     )
     response.assert_status_code(200)
     response.assert_body(expected)
@@ -62,7 +62,7 @@ def test_characters_route_create_invalid(mock_validate, test_client):
 
 def test_characters_route_get_by_id(test_client):
     expected = {'character': {'foo': 'bar'}}
-    by_id = characters.IN_MEMORY_CHARACTERS['by_id']
+    by_id = characters.REPO_CHARACTERS['by_id']
     by_id[TEST_ID] = {'foo': 'bar'}
     response = test_client.get(path='/%s' % TEST_ID)
     response.assert_status_code(200)
@@ -82,7 +82,7 @@ def test_characters_save_insert(mock_validate, mock_uuid4):
     expected = {'id': TEST_ID}
     mock_validate.return_value = None
     mock_uuid4.return_value = TEST_ID
-    by_id = characters.IN_MEMORY_CHARACTERS['by_id']
+    by_id = characters.REPO_CHARACTERS['by_id']
     actual = characters.save({'id': None})
     assert expected == actual
     assert expected == by_id[TEST_ID]
@@ -92,15 +92,15 @@ def test_characters_save_insert(mock_validate, mock_uuid4):
 def test_characters_save_update(mock_validate):
     expected = {'id': TEST_ID}
     mock_validate.return_value = None
-    by_id = characters.IN_MEMORY_CHARACTERS['by_id']
+    by_id = characters.REPO_CHARACTERS['by_id']
     by_id[TEST_ID] = expected
     actual = characters.save({'id': TEST_ID})
     assert expected == actual
     assert expected == by_id[TEST_ID]
 
 
-def test_characters_validate_missing_account_id():
-    expected = 'Missing required field: accountId'
+def test_characters_validate_missing_account():
+    expected = 'Missing required field: account'
     with pytest.raises(ValidationError) as e:
         characters.validate({'name': 'foobar'})
     assert expected in e.value.errors
@@ -109,35 +109,45 @@ def test_characters_validate_missing_account_id():
 def test_characters_validate_missing_name():
     expected = 'Missing required field: name'
     with pytest.raises(ValidationError) as e:
-        characters.validate({'accountId': 'foobar'})
+        characters.validate({'account': 'foobar'})
     assert expected in e.value.errors
 
 
-@patch('wtf.api.characters.find_by_account_id')
-def test_characters_validate_duplicate_name(mock_find_by_account_id):
+@patch('wtf.api.characters.find_by_account')
+def test_characters_validate_duplicate_name(mock_find_by_account):
     expected = 'Duplicate character name: foo'
-    mock_find_by_account_id.return_value = [{'name': 'foo'}]
+    mock_find_by_account.return_value = [{'name': 'foo'}]
     with pytest.raises(ValidationError) as e:
-        characters.validate({'accountId': TEST_ACCOUNT_ID, 'name': 'foo'})
+        characters.validate({'account': TEST_ACCOUNT, 'name': 'foo'})
     assert expected in e.value.errors
 
 
-def test_characters_find_by_account_id():
+def test_characters_find_by_account():
     expected = ['one', 'two', 'three']
-    by_account_id = characters.IN_MEMORY_CHARACTERS['by_account_id']
-    by_account_id[TEST_ACCOUNT_ID] = expected
-    actual = characters.find_by_account_id(TEST_ACCOUNT_ID)
+    by_account = characters.REPO_CHARACTERS['by_account']
+    by_account[TEST_ACCOUNT] = expected
+    actual = characters.find_by_account(TEST_ACCOUNT)
     assert expected == actual
 
 
 def test_characters_allocate_ability_points():
     expected = {
-        'abilities': dict(strength=6, endurance=7, agility=8, accuracy=9),
-        'ability_points': 5
+        'abilities': dict(
+            unallocated=5,
+            strength=6,
+            endurance=7,
+            agility=8,
+            accuracy=9
+        )
     }
     character = {
-        'abilities': dict(strength=5, endurance=5, agility=5, accuracy=5),
-        'ability_points': 15
+        'abilities': dict(
+            unallocated=15,
+            strength=5,
+            endurance=5,
+            agility=5,
+            accuracy=5
+        )
     }
     actual = characters.allocate_ability_points(
         character,
@@ -152,8 +162,13 @@ def test_characters_allocate_ability_points():
 def test_characters_allocate_ability_points_insufficient():
     expected = 'Insufficient ability points'
     character = {
-        'abilities': dict(strength=5, endurance=5, agility=5, accuracy=5),
-        'ability_points': 3
+        'abilities': dict(
+            unallocated=3,
+            strength=5,
+            endurance=5,
+            agility=5,
+            accuracy=5
+        )
     }
     with pytest.raises(ValidationError) as e:
         characters.allocate_ability_points(
@@ -169,21 +184,26 @@ def test_characters_allocate_ability_points_insufficient():
 def test_characters_create():
     expected = {
         'id': None,
-        'accountId': TEST_ACCOUNT_ID,
+        'account': TEST_ACCOUNT,
         'name': TEST_NAME,
         'abilities': {
+            'unallocated': 5,
             'strength': 5,
             'endurance': 5,
             'agility': 5,
             'accuracy': 5
-        },
-        'ability_points': 5
+        }
     }
     actual = characters.create(
-        account_id=TEST_ACCOUNT_ID,
+        account=TEST_ACCOUNT,
         name=TEST_NAME,
-        abilities=dict(strength=5, endurance=5, agility=5, accuracy=5),
-        ability_points=5
+        abilities=dict(
+            unallocated=5,
+            strength=5,
+            endurance=5,
+            agility=5,
+            accuracy=5
+        )
     )
     assert expected == actual
 
@@ -191,15 +211,15 @@ def test_characters_create():
 def test_characters_create_defaults():
     expected = {
         'id': None,
-        'accountId': None,
+        'account': None,
         'name': None,
         'abilities': {
+            'unallocated': 0,
             'strength': 0,
             'endurance': 0,
             'agility': 0,
             'accuracy': 0
-        },
-        'ability_points': 0
+        }
     }
     actual = characters.create()
     assert expected == actual
