@@ -71,6 +71,9 @@ def test_accounts_route_get_by_id(test_client):
     response = test_client.get(path='/%s' % TEST_ID)
     response.assert_status_code(200)
     response.assert_body(expected)
+    response = test_client.get(path='/%s' % TEST_ID)
+    response.assert_status_code(200)
+    response.assert_body(expected)
 
 
 def test_accounts_route_get_by_id_not_found(test_client):
