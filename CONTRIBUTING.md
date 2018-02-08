@@ -41,7 +41,6 @@ You will need [git](https://git-scm.com/) and a [GitHub](https://github.com/) ac
 We provide a `Vagrantfile` for those who wish to use [Vagrant](https://www.vagrantup.com/) to manage their development environment:
 ```bash
 $ vagrant up && vagrant ssh
-$ cd /vagrant
 ```
 
 This project requires [Python 3.6+](https://www.python.org/) and [pipenv](https://github.com/kennethreitz/pipenv).
@@ -50,7 +49,7 @@ We use pipenv to install and manage this project's dependencies and its environm
 
 To install the project's dependencies (including development dependencies):
 ```bash
-$ pipenv install --three --dev
+$ pipenv install --python 3.6 --dev
 ```
 
 For more help with pipenv:

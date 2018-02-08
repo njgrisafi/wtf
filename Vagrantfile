@@ -24,9 +24,11 @@ Vagrant.configure(VAGRANTFILE_VERSION) do |config|
 
   # Enable provisioning with a shell script. Updates & Installs pip and pipenv.
   config.vm.provision "shell", inline: <<-SHELL
-    apt-get update
+    add-apt-repository ppa:jonathonf/python-3.6
+    apt-get update -y && apt-get install python3.6 -y
     curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py"
-    python3 get-pip.py
+    python3.6 get-pip.py
     pip3 install pipenv
+    echo "cd /vagrant" >> /home/vagrant/.bashrc
   SHELL
 end
