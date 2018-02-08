@@ -186,6 +186,9 @@ def test_characters_create():
         'id': None,
         'account': TEST_ACCOUNT,
         'name': TEST_NAME,
+        'level': 12,
+        'experience': 123,
+        'health': 1234,
         'abilities': {
             'unallocated': 5,
             'strength': 5,
@@ -197,6 +200,9 @@ def test_characters_create():
     actual = characters.create(
         account=TEST_ACCOUNT,
         name=TEST_NAME,
+        level=12,
+        experience=123,
+        health=1234,
         abilities=dict(
             unallocated=5,
             strength=5,
@@ -213,6 +219,9 @@ def test_characters_create_defaults():
         'id': None,
         'account': None,
         'name': None,
+        'level': 1,
+        'experience': 0,
+        'health': 1,
         'abilities': {
             'unallocated': 0,
             'strength': 0,

@@ -132,9 +132,12 @@ def create(**kwargs):
     '''Create a character.
 
     Characters have the following properties:
-        id: a UUID (Universally Unique Identifier) for the character
+        id: a UUID (Universally Unique Identifier)
         account: the ID of the account that owns the character
-        name: the name of the character
+        name
+        level: current level
+        experience: current experience points
+        health: current health points
         abilities:
             unallocated: unallocated ability points
             strength: increases attack damage
@@ -142,14 +145,14 @@ def create(**kwargs):
             agility: increases evasion and attack speed
             accuracy: increases normal and critical attack chance
     '''
-    character_id = kwargs.get('id')
-    account = kwargs.get('account')
-    name = kwargs.get('name')
     abilities = kwargs.get('abilities', {})
     return {
-        'id': character_id,
-        'account': account,
-        'name': name,
+        'id': kwargs.get('id'),
+        'account': kwargs.get('account'),
+        'name': kwargs.get('name'),
+        'level': kwargs.get('level', 1),
+        'experience': kwargs.get('experience', 0),
+        'health': kwargs.get('health', 1),
         'abilities': {
             'unallocated': abilities.get('unallocated', 0),
             'strength': abilities.get('strength', 0),
