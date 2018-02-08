@@ -57,6 +57,22 @@ For more help with pipenv:
 $ pipenv --help
 ```
 
+This project can be configured by setting the following environment variables:
+
+| NAME          | DESCRIPTION           | DEFAULT VALUE
+| ------------- |:---------------------:| ---------:|
+| WTF_HOST      | sets WTF package host | localhost |
+| WTF_PORT      | sets WTF package port | 5000      |
+| WTF_API_HOST  | sets WTF API host     | localhost |
+| WTF_API_HOST  | sets WTF API host     | 5000      |
+| WTF_WEB_HOST  | sets WTF WEB host     | localhost |
+| WTF_WEB_HOST  | sets WTF WEB PORT     | 5000      |
+
+To set an environment variable from an unix shell:
+```bash
+$ export {NAME}={VALUE}
+```
+
 ## developing
 
 Create a pipenv subshell:
