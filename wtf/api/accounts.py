@@ -58,7 +58,7 @@ def route_get(account_id):
     response = None
     if account:
         account = account.copy()
-        pwd = account.pop('password')
+        account.pop('password')
         response = http.success(json={'account': account})
     else:
         response = http.not_found(json={'errors': ['Account not found']})
