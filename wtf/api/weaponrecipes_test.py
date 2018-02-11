@@ -1,7 +1,7 @@
 # pylint: disable=missing-docstring,invalid-name,redefined-outer-name
 import pytest
 from wtf.api import weaponrecipes
-from wtf.errors import ValidationError
+from wtf.api.errors import ValidationError
 
 
 def test_weaponrecipes_validate_success():

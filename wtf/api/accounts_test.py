@@ -3,8 +3,8 @@ import pytest
 from mock import patch
 from wtf.api import accounts
 from wtf.api.app import create_app
-from wtf.errors import ValidationError
-from wtf.http import create_test_client
+from wtf.api.errors import NotFoundError, ValidationError
+from wtf.testing import create_test_client
 
 
 TEST_ID = '0a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'
@@ -67,7 +67,7 @@ def test_accounts_route_create_invalid(mock_validate, test_client):
 def test_accounts_route_get_by_id(test_client):
     expected = {'account': {'foo': 'bar'}}
     by_id = accounts.REPO_ACCOUNTS['by_id']
-    by_id[TEST_ID] = {'foo': 'bar', 'password': 'asdf'}
+    by_id[TEST_ID] = {'foo': 'bar', 'password': 'foobar'}
     response = test_client.get(path='/%s' % TEST_ID)
     response.assert_status_code(200)
     response.assert_body(expected)
@@ -127,27 +127,13 @@ def test_accounts_validate_email_registered(mock_find_by_email):
     assert expected in e.value.errors
 
 
-def test_accounts_validate_missing_password():
+@patch('wtf.api.accounts.find_by_email')
+def test_accounts_validate_missing_password(mock_find_by_email):
     expected = 'Missing required field: password'
+    mock_find_by_email.return_value = 'foobar'
     with pytest.raises(ValidationError) as e:
         accounts.validate({'email': 'foobar'})
     assert expected in e.value.errors
-
-
-def test_accounts_find_by_id():
-    expected = 'foobar'
-    by_id = accounts.REPO_ACCOUNTS['by_id']
-    by_id[TEST_ID] = expected
-    assert accounts.find_by_id(TEST_ID) == expected
-    assert accounts.find_by_id('asdf') is None
-
-
-def test_accounts_find_by_email():
-    expected = 'foobar'
-    by_email = accounts.REPO_ACCOUNTS['by_email']
-    by_email[TEST_EMAIL] = expected
-    assert accounts.find_by_email(TEST_EMAIL) == expected
-    assert accounts.find_by_email('asdf') is None
 
 
 @patch('wtf.api.accounts.util.salt_and_hash_compare')
@@ -175,11 +161,36 @@ def test_accounts_find_by_email_password_incorrect_password(
     assert account is None
 
 
-@patch('wtf.api.accounts.find_by_email')
-def test_accounts_find_by_email_password_not_found(mock_find_by_email):
-    mock_find_by_email.return_value = None
-    account = accounts.find_by_email_password('', '')
-    assert account is None
+def test_accounts_find_by_email_password_not_found():
+    with pytest.raises(NotFoundError) as e:
+        accounts.find_by_email_password('', '')
+    assert str(e.value) == 'Account not found'
+
+
+def test_accounts_find_by_id():
+    expected = 'foobar'
+    by_id = accounts.REPO_ACCOUNTS['by_id']
+    by_id[TEST_ID] = expected
+    assert accounts.find_by_id(TEST_ID) == expected
+
+
+def test_accounts_find_by_id_not_found():
+    with pytest.raises(NotFoundError) as e:
+        accounts.find_by_id('foobar')
+    assert str(e.value) == 'Account not found'
+
+
+def test_accounts_find_by_email():
+    expected = 'foobar'
+    by_email = accounts.REPO_ACCOUNTS['by_email']
+    by_email[TEST_EMAIL] = expected
+    assert accounts.find_by_email(TEST_EMAIL) == expected
+
+
+def test_accounts_find_by_email_not_found():
+    with pytest.raises(NotFoundError) as e:
+        accounts.find_by_email('foobar')
+    assert str(e.value) == 'Account not found'
 
 
 @patch('wtf.api.accounts.util.salt_and_hash')

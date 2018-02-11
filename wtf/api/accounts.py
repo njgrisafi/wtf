@@ -4,10 +4,9 @@ wtf.api.accounts
 Routes and functions for manipulating accounts.
 '''
 from uuid import uuid4
-from flask import Blueprint, request
-from wtf import http
+from flask import Blueprint, jsonify, request
 from wtf.api import util
-from wtf.errors import ValidationError
+from wtf.api.errors import NotFoundError, ValidationError
 
 
 BLUEPRINT = Blueprint('accounts', __name__)
@@ -31,18 +30,13 @@ def route_create():
             "password": "..."
         }'
     '''
-    response = None
-    try:
-        http.validate(content_type='application/json')
-        body = request.get_json(silent=True) or {}
-        account = save(create(
-            email=body.get('email'),
-            password=body.get('password')
-        ))
-        response = http.success(json=account)
-    except ValidationError as error:
-        response = http.bad_request(json={'errors': error.errors})
-    return response
+    util.validate_request(content_type='application/json')
+    body = request.get_json(silent=True) or {}
+    account = save(create(
+        email=body.get('email'),
+        password=body.get('password')
+    ))
+    return jsonify(account), 200
 
 
 @BLUEPRINT.route('/<account_id>', methods=['GET'])
@@ -54,15 +48,10 @@ def route_get(account_id):
         --url http://localhost:5000/api/accounts/<account_id> \
         --write-out "\n"
     '''
-    account = REPO_ACCOUNTS.get('by_id').get(account_id)
-    response = None
-    if account:
-        account = account.copy()
-        account.pop('password')
-        response = http.success(json={'account': account})
-    else:
-        response = http.not_found(json={'errors': ['Account not found']})
-    return response
+    account = find_by_id(account_id)
+    account = account.copy()
+    account.pop('password')
+    return jsonify({'account': account}), 200
 
 
 def save(account):
@@ -98,28 +87,41 @@ def validate(account):
         raise ValidationError(errors=errors)
 
 
-def find_by_id(account_id):
-    '''Find an account with the provided id.'''
-    return REPO_ACCOUNTS.get('by_id').get(account_id)
-
-
-def find_by_email(email):
-    '''Find an account with the provided email address.'''
-    return REPO_ACCOUNTS.get('by_email').get(email)
-
-
 def find_by_email_password(email, password):
     '''Find an account with the provided email address and password.
 
     This function is intended to be used with account
-    authentication - it will return `None` if the supplied email and
-    password combination is incorrect. Note that the password supplied to this
-    function is the account's plaintext password.
+        authentication - it will return `None` if the supplied email and
+        password combination is incorrect. Note that the password supplied to
+        this function is the account's plaintext password.
+
+    Raises a NotFoundError if the account could not be found.
     '''
     account = find_by_email(email)
-    if account is not None:
-        if not util.salt_and_hash_compare(password, account.get('password')):
-            account = None
+    if not util.salt_and_hash_compare(password, account.get('password')):
+        account = None
+    return account
+
+
+def find_by_id(account_id):
+    '''Find an account with the provided id.
+
+    Raises a NotFoundError if the account could not be found.
+    '''
+    account = REPO_ACCOUNTS.get('by_id').get(account_id)
+    if account is None:
+        raise NotFoundError('Account not found')
+    return account
+
+
+def find_by_email(email):
+    '''Find an account with the provided email address.
+
+    Raises a NotFoundError if the account could not be found.
+    '''
+    account = REPO_ACCOUNTS.get('by_email').get(email)
+    if account is None:
+        raise NotFoundError('Account not found')
     return account
 
 

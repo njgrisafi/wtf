@@ -4,9 +4,9 @@ wtf.api.characters
 Routes and functions for manipulating characters.
 '''
 from uuid import uuid4
-from flask import Blueprint, request
-from wtf import http
-from wtf.errors import ValidationError
+from flask import Blueprint, jsonify, request
+from wtf.api import util
+from wtf.api.errors import NotFoundError, ValidationError
 
 
 BLUEPRINT = Blueprint('characters', __name__)
@@ -30,18 +30,13 @@ def route_create():
             "name": "..."
         }'
     '''
-    response = None
-    try:
-        http.validate(content_type='application/json')
-        body = request.get_json(silent=True) or {}
-        character = save(create(
-            account=body.get('account'),
-            name=body.get('name')
-        ))
-        response = http.success(json=character)
-    except ValidationError as error:
-        response = http.bad_request(json={'errors': error.errors})
-    return response
+    util.validate_request(content_type='application/json')
+    body = request.get_json(silent=True) or {}
+    character = save(create(
+        account=body.get('account'),
+        name=body.get('name')
+    ))
+    return jsonify(character), 200
 
 
 @BLUEPRINT.route('/<character_id>', methods=['GET'])
@@ -53,13 +48,8 @@ def route_get(character_id):
         --url http://localhost:5000/api/characters/<character_id> \
         --write-out "\n"
     '''
-    character = REPO_CHARACTERS.get('by_id').get(character_id)
-    response = None
-    if character:
-        response = http.success(json={'character': character})
-    else:
-        response = http.not_found(json={'errors': ['Character not found']})
-    return response
+    character = find_by_id(character_id)
+    return jsonify({'character': character}), 200
 
 
 def save(character):
@@ -120,6 +110,17 @@ def validate(character):
             errors.append('Duplicate character name: %s' % name)
     if errors:
         raise ValidationError(errors=errors)
+
+
+def find_by_id(character_id):
+    '''Find a character with the provided id.
+
+    Raises a NotFoundError if the character could not be found.
+    '''
+    character = REPO_CHARACTERS.get('by_id').get(character_id)
+    if character is None:
+        raise NotFoundError('Character not found')
+    return character
 
 
 def find_by_account(account):
