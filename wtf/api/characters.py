@@ -68,7 +68,7 @@ def save(character):
     If the character already exists, it will be updated; otherwise, it will be
         created.
 
-    If the character is invalid, a ValidationError will be raised.
+    Raises a ValidationError if the character is invalid.
     '''
     character = character.copy()
     validate(character)
@@ -84,8 +84,7 @@ def save(character):
 def allocate_ability_points(character, **kwargs):
     '''Allocate a character's ability points.
 
-    If the character has insufficient ability points, a ValidationError will be
-        raised.
+    Raises a ValidationError if the character has insufficient ability points.
     '''
     character = character.copy()
     abilities = character.get('abilities')
