@@ -20,7 +20,7 @@ Weapon recipes have the following properties:
     > maximum damage.max = damage.max.center + damage.max.radius
 '''
 from wtf.api import util
-from wtf.errors import ValidationError
+from wtf.api.errors import ValidationError
 
 
 WEAPON_TYPES = ['sword', 'axe', 'mace', 'dagger', 'bow']

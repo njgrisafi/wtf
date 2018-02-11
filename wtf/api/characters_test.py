@@ -3,8 +3,8 @@ import pytest
 from mock import patch
 from wtf.api import characters
 from wtf.api.app import create_app
-from wtf.errors import ValidationError
-from wtf.http import create_test_client
+from wtf.api.errors import NotFoundError, ValidationError
+from wtf.testing import create_test_client
 
 
 TEST_ID = '0a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'
@@ -120,6 +120,20 @@ def test_characters_validate_duplicate_name(mock_find_by_account):
     with pytest.raises(ValidationError) as e:
         characters.validate({'account': TEST_ACCOUNT, 'name': 'foo'})
     assert expected in e.value.errors
+
+
+def test_characters_find_by_id():
+    expected = 'foobar'
+    by_id = characters.REPO_CHARACTERS['by_id']
+    by_id[TEST_ID] = expected
+    assert characters.find_by_id(TEST_ID) == expected
+
+
+def test_characters_find_by_id_not_found():
+    with pytest.raises(NotFoundError) as e:
+        characters.find_by_id('foobar')
+    assert str(e.value) == 'Character not found'
+
 
 
 def test_characters_find_by_account():
