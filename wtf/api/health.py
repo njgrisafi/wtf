@@ -10,8 +10,8 @@ BLUEPRINT = Blueprint('health', __name__)
 
 
 @BLUEPRINT.route('', methods=['GET'])
-def route_healthcheck():
-    '''Handle healthcheck requests
+def handle_healthcheck_request():
+    '''Handle healthcheck requests.
 
     $ curl \
         --request GET \

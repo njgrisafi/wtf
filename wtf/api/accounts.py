@@ -17,7 +17,7 @@ REPO_ACCOUNTS = {
 
 
 @BLUEPRINT.route('', methods=['POST'])
-def route_create():
+def handle_create_request():
     '''Handle account creation requests.
 
     $ curl \
@@ -40,7 +40,7 @@ def route_create():
 
 
 @BLUEPRINT.route('/<account_id>', methods=['GET'])
-def route_get(account_id):
+def handle_get_by_id_request(account_id):
     '''Handle account retrieval by ID requests.
 
     $ curl \
@@ -99,7 +99,7 @@ def find_by_email_password(email, password):
     '''
     account = find_by_email(email)
     if not util.salt_and_hash_compare(password, account.get('password')):
-        account = None
+        raise NotFoundError('Account not found')
     return account
 
 

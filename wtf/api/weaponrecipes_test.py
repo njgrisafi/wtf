@@ -4,7 +4,7 @@ from wtf.api import weaponrecipes
 from wtf.api.errors import ValidationError
 
 
-def test_weaponrecipes_validate_success():
+def test_validate_weapon_recipe():
     weaponrecipes.validate({
         'type': 'sword',
         'name': 'Foo Sword',
@@ -18,7 +18,7 @@ def test_weaponrecipes_validate_success():
     })
 
 
-def test_weaponrecipes_validate_missing_fields():
+def test_validate_weapon_recipe_missing_fields():
     expected = [
         'Missing required field: type',
         'Missing required field: name',
@@ -36,21 +36,21 @@ def test_weaponrecipes_validate_missing_fields():
     assert set(expected).issubset(e.value.errors)
 
 
-def test_weaponrecipes_validate_invalid_type():
+def test_validate_weapon_recipe_invalid_type():
     expected = 'Invalid weapon type'
     with pytest.raises(ValidationError) as e:
         weaponrecipes.validate({'type': 'foobar'})
     assert expected in e.value.errors
 
 
-def test_weaponrecipes_validate_invalid_handedness():
+def test_validate_weapon_recipe_invalid_handedness():
     expected = 'Handedness must be either 1 or 2'
     with pytest.raises(ValidationError) as e:
         weaponrecipes.validate({'handedness': 42})
     assert expected in e.value.errors
 
 
-def test_weaponrecipes_validate_interval_values_negative():
+def test_validate_weapon_recipe_interval_values_negative():
     expected = [
         'Weight must be >= 0',
         'Min damage must be > 0',
@@ -67,7 +67,7 @@ def test_weaponrecipes_validate_interval_values_negative():
     assert set(expected).issubset(e.value.errors)
 
 
-def test_weaponrecipes_validate_interval_values_zero():
+def test_validate_weapon_recipe_interval_values_zero():
     expected = [
         'Min damage must be > 0',
         'Max damage must be > 0'
@@ -83,7 +83,7 @@ def test_weaponrecipes_validate_interval_values_zero():
     assert set(expected).issubset(e.value.errors)
 
 
-def test_weaponrecipes_validate_max_damage_less_than_min_damage():
+def test_validate_weapon_recipe_max_damage_less_than_min_damage():
     expected = 'Min damage must always be less than max damage'
     with pytest.raises(ValidationError) as e:
         weaponrecipes.validate({
@@ -95,7 +95,7 @@ def test_weaponrecipes_validate_max_damage_less_than_min_damage():
     assert expected in e.value.errors
 
 
-def test_weaponrecipes_validate_min_damage_intersects_max_damage():
+def test_validate_weapon_recipe_min_damage_intersects_max_damage():
     expected = 'Min damage must always be less than max damage'
     with pytest.raises(ValidationError) as e:
         weaponrecipes.validate({
@@ -107,7 +107,7 @@ def test_weaponrecipes_validate_min_damage_intersects_max_damage():
     assert expected in e.value.errors
 
 
-def test_weaponrecipes_create():
+def test_create_weapon_recipe():
     expected = {
         'type': 'sword',
         'name': 'Foo Sword',
@@ -133,7 +133,7 @@ def test_weaponrecipes_create():
     assert expected == actual
 
 
-def test_weaponrecipes_create_defaults():
+def test_create_weapon_recipe_defaults():
     expected = {
         'type': None,
         'name': None,

@@ -17,7 +17,7 @@ REPO_CHARACTERS = {
 
 
 @BLUEPRINT.route('', methods=['POST'])
-def route_create():
+def handle_create_request():
     '''Handle character creation requests.
 
     $ curl \
@@ -40,7 +40,7 @@ def route_create():
 
 
 @BLUEPRINT.route('/<character_id>', methods=['GET'])
-def route_get(character_id):
+def handle_get_by_id_request(character_id):
     '''Handle character retrieval by ID requests.
 
     $ curl \
