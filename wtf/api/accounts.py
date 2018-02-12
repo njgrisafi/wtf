@@ -10,10 +10,7 @@ from wtf.api.errors import NotFoundError, ValidationError
 
 
 BLUEPRINT = Blueprint('accounts', __name__)
-REPO_ACCOUNTS = {
-    'by_id': {},
-    'by_email': {}
-}
+REPO = {'by_id': {}, 'by_email': {}}
 
 
 @BLUEPRINT.route('', methods=['POST'])
@@ -64,8 +61,8 @@ def save(account):
     validate(account)
     if account.get('id') is None:
         account['id'] = str(uuid4())
-    REPO_ACCOUNTS.get('by_id')[account.get('id')] = account
-    REPO_ACCOUNTS.get('by_email')[account.get('email')] = account
+    REPO.get('by_id')[account.get('id')] = account
+    REPO.get('by_email')[account.get('email')] = account
     return account
 
 
@@ -108,7 +105,7 @@ def find_by_id(account_id):
 
     Raises a NotFoundError if the account could not be found.
     '''
-    account = REPO_ACCOUNTS.get('by_id').get(account_id)
+    account = REPO.get('by_id').get(account_id)
     if account is None:
         raise NotFoundError('Account not found')
     return account
@@ -119,7 +116,7 @@ def find_by_email(email):
 
     Raises a NotFoundError if the account could not be found.
     '''
-    account = REPO_ACCOUNTS.get('by_email').get(email)
+    account = REPO.get('by_email').get(email)
     if account is None:
         raise NotFoundError('Account not found')
     return account

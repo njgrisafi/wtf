@@ -18,8 +18,7 @@ TEST_ACCOUNT = 'foobar'
 
 
 def setup_function():
-    accounts.REPO_ACCOUNTS['by_id'] = {}
-    accounts.REPO_ACCOUNTS['by_email'] = {}
+    accounts.REPO = {'by_id': {}, 'by_email': {}}
 
 
 @pytest.fixture
@@ -67,7 +66,7 @@ def test_handle_create_account_request_invalid(mock_validate, test_client):
 
 def test_handle_get_account_by_id_request(test_client):
     expected = {'account': {'foo': 'bar'}}
-    by_id = accounts.REPO_ACCOUNTS['by_id']
+    by_id = accounts.REPO['by_id']
     by_id[TEST_ID] = {'foo': 'bar', 'password': 'foobar'}
     response = test_client.get(path='/%s' % TEST_ID)
     response.assert_status_code(200)
@@ -90,8 +89,8 @@ def test_save_account_insert(mock_validate, mock_uuid4):
     expected = {'id': TEST_ID, 'email': TEST_EMAIL}
     mock_validate.return_value = None
     mock_uuid4.return_value = TEST_ID
-    by_id = accounts.REPO_ACCOUNTS['by_id']
-    by_email = accounts.REPO_ACCOUNTS['by_email']
+    by_id = accounts.REPO['by_id']
+    by_email = accounts.REPO['by_email']
     actual = accounts.save({'id': None, 'email': TEST_EMAIL})
     assert expected == actual
     assert expected == by_id[TEST_ID]
@@ -102,8 +101,8 @@ def test_save_account_insert(mock_validate, mock_uuid4):
 def test_save_account_update(mock_validate):
     expected = {'id': TEST_ID, 'email': TEST_EMAIL}
     mock_validate.return_value = None
-    by_id = accounts.REPO_ACCOUNTS['by_id']
-    by_email = accounts.REPO_ACCOUNTS['by_email']
+    by_id = accounts.REPO['by_id']
+    by_email = accounts.REPO['by_email']
     by_id[TEST_ID] = 'foobar1'
     by_email[TEST_EMAIL] = 'foobar2'
     actual = accounts.save({'id': TEST_ID, 'email': TEST_EMAIL})
@@ -159,7 +158,7 @@ def test_find_account_by_email_password_not_found():
 
 def test_find_account_by_id():
     expected = TEST_ACCOUNT
-    by_id = accounts.REPO_ACCOUNTS['by_id']
+    by_id = accounts.REPO['by_id']
     by_id[TEST_ID] = expected
     assert accounts.find_by_id(TEST_ID) == expected
 
@@ -172,7 +171,7 @@ def test_find_account_by_id_not_found():
 
 def test_find_account_by_email():
     expected = TEST_ACCOUNT
-    by_email = accounts.REPO_ACCOUNTS['by_email']
+    by_email = accounts.REPO['by_email']
     by_email[TEST_EMAIL] = expected
     assert accounts.find_by_email(TEST_EMAIL) == expected
 

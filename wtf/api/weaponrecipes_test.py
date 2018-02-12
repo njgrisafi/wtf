@@ -1,7 +1,38 @@
 # pylint: disable=missing-docstring,invalid-name,redefined-outer-name
 import pytest
+from mock import patch
 from wtf.api import weaponrecipes
 from wtf.api.errors import ValidationError
+
+
+TEST_ID = '2513cb35-9a34-4612-8541-4916035979f3'
+
+
+def setup_function():
+    weaponrecipes.REPO = {'by_id': {}}
+
+
+@patch('wtf.api.weaponrecipes.uuid4')
+@patch('wtf.api.weaponrecipes.validate')
+def test_save_weapon_recipe_insert(mock_validate, mock_uuid4):
+    expected = {'id': TEST_ID}
+    mock_validate.return_value = None
+    mock_uuid4.return_value = TEST_ID
+    by_id = weaponrecipes.REPO['by_id']
+    actual = weaponrecipes.save({'id': None})
+    assert expected == actual
+    assert expected == by_id[TEST_ID]
+
+
+@patch('wtf.api.weaponrecipes.validate')
+def test_save_weapon_recipe_update(mock_validate):
+    expected = {'id': TEST_ID}
+    mock_validate.return_value = None
+    by_id = weaponrecipes.REPO['by_id']
+    by_id[TEST_ID] = expected
+    actual = weaponrecipes.save({'id': TEST_ID})
+    assert expected == actual
+    assert expected == by_id[TEST_ID]
 
 
 def test_validate_weapon_recipe():
