@@ -5,7 +5,7 @@ from wtf.api import errors
 
 
 @patch('wtf.api.errors.jsonify')
-def test_invalid_request_handler(mock_jsonify):
+def test_handle_invalid_request_error(mock_jsonify):
     mock_jsonify.return_value = 'foobar'
     error = errors.ValidationError(errors=['foo', 'bar', 'baz'])
     response, status_code = errors.handle_invalid_request(error)
@@ -15,7 +15,7 @@ def test_invalid_request_handler(mock_jsonify):
 
 
 @patch('wtf.api.errors.jsonify')
-def test_not_found_handler(mock_jsonify):
+def test_handle_not_found_error(mock_jsonify):
     mock_jsonify.return_value = 'foobar'
     error = errors.NotFoundError('Foobar not found')
     response, status_code = errors.handle_not_found(error)
@@ -25,7 +25,7 @@ def test_not_found_handler(mock_jsonify):
 
 
 @patch('wtf.api.errors.jsonify')
-def test_default_handler(mock_jsonify):
+def test_handle_misc_error(mock_jsonify):
     mock_jsonify.return_value = 'foobar'
     error = Exception('foo bar baz')
     response, status_code = errors.handle_error(error)
@@ -34,7 +34,7 @@ def test_default_handler(mock_jsonify):
     mock_jsonify.assert_called_with({'errors': ['Internal Server Error']})
 
 
-def test_validation_exception_as_string():
+def test_validation_exception_to_string():
     expected = 'Validation errors: foo, bar, baz'
     with pytest.raises(errors.ValidationError) as error:
         raise errors.ValidationError(errors=['foo', 'bar', 'baz'])

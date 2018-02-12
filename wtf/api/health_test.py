@@ -12,7 +12,7 @@ def test_client():
     return client
 
 
-def test_route_healthcheck(test_client):
+def test_handle_healthcheck_request(test_client):
     expected = b'Healthy'
     response = test_client.get()
     response.assert_status_code(200)

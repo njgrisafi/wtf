@@ -2,7 +2,7 @@
 from wtf.api import weapons
 
 
-def test_weapons_create():
+def test_create_weapon():
     expected = {
         'recipe': 'd2e0c2df-cacf-4bf7-bda0-fc5413b5d8b2',
         'type': 'sword',
@@ -20,7 +20,7 @@ def test_weapons_create():
     assert expected == actual
 
 
-def test_weapons_create_defaults():
+def test_create_weapon_defaults():
     expected = {
         'recipe': None,
         'name': None,
