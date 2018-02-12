@@ -10,10 +10,7 @@ from wtf.api.errors import NotFoundError, ValidationError
 
 
 BLUEPRINT = Blueprint('characters', __name__)
-REPO_CHARACTERS = {
-    'by_id': {},
-    'by_account': {}
-}
+REPO = {'by_id': {}, 'by_account': {}}
 
 
 @BLUEPRINT.route('', methods=['POST'])
@@ -64,8 +61,8 @@ def save(character):
     validate(character)
     if character.get('id') is None:
         character['id'] = uuid4()
-    REPO_CHARACTERS.get('by_id')[character.get('id')] = character
-    REPO_CHARACTERS.get('by_account') \
+    REPO.get('by_id')[character.get('id')] = character
+    REPO.get('by_account') \
         .setdefault(character.get('account'), []) \
         .append(character)
     return character
@@ -117,7 +114,7 @@ def find_by_id(character_id):
 
     Raises a NotFoundError if the character could not be found.
     '''
-    character = REPO_CHARACTERS.get('by_id').get(character_id)
+    character = REPO.get('by_id').get(character_id)
     if character is None:
         raise NotFoundError('Character not found')
     return character
@@ -125,7 +122,7 @@ def find_by_id(character_id):
 
 def find_by_account(account):
     '''Find a characters owned by an account with the provided account ID.'''
-    return REPO_CHARACTERS.get('by_account').get(account, [])
+    return REPO.get('by_account').get(account, [])
 
 
 def create(**kwargs):

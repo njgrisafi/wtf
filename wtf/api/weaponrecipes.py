@@ -2,6 +2,7 @@
 wtf.api.weaponrecipes
 
 Weapon recipes have the following properties:
+  * id: the recipe's UUID (Universally Unique Identifier)
   * type: weapon type
   * name: (customizable) weapon name
   * description: (customizable) weapon description
@@ -19,13 +20,29 @@ Weapon recipes have the following properties:
     > minimum damage.max = damage.max.center - damage.max.radius
     > maximum damage.max = damage.max.center + damage.max.radius
 '''
+from uuid import uuid4
 from wtf.api import util
 from wtf.api.errors import ValidationError
 
 
 WEAPON_TYPES = ['sword', 'axe', 'mace', 'dagger', 'bow']
-WEAPON_GRADE_MIN = 0.0
-WEAPON_GRADE_MAX = 1.0
+REPO = {'by_id': {}}
+
+
+def save(recipe):
+    '''Persist a weapon recipe.
+
+    If the recipe already exists, it will be updated; otherwise, it will be
+        created.
+
+    Raises a ValidationError if the recipe is invalid.
+    '''
+    recipe = recipe.copy()
+    validate(recipe)
+    if recipe.get('id') is None:
+        recipe['id'] = uuid4()
+    REPO.get('by_id')[recipe.get('id')] = recipe
+    return recipe
 
 
 def validate(recipe):

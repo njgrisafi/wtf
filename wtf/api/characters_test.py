@@ -13,8 +13,7 @@ TEST_NAME = 'foobar'
 
 
 def setup_function():
-    characters.REPO_CHARACTERS['by_id'] = {}
-    characters.REPO_CHARACTERS['by_account'] = {}
+    characters.REPO = {'by_id': {}, 'by_account': {}}
 
 
 @pytest.fixture
@@ -62,7 +61,7 @@ def test_handle_create_character_request_invalid(mock_validate, test_client):
 
 def test_handle_get_character_by_id_request(test_client):
     expected = {'character': {'foo': 'bar'}}
-    by_id = characters.REPO_CHARACTERS['by_id']
+    by_id = characters.REPO['by_id']
     by_id[TEST_ID] = {'foo': 'bar'}
     response = test_client.get(path='/%s' % TEST_ID)
     response.assert_status_code(200)
@@ -82,7 +81,7 @@ def test_save_character_insert(mock_validate, mock_uuid4):
     expected = {'id': TEST_ID}
     mock_validate.return_value = None
     mock_uuid4.return_value = TEST_ID
-    by_id = characters.REPO_CHARACTERS['by_id']
+    by_id = characters.REPO['by_id']
     actual = characters.save({'id': None})
     assert expected == actual
     assert expected == by_id[TEST_ID]
@@ -92,7 +91,7 @@ def test_save_character_insert(mock_validate, mock_uuid4):
 def test_save_character_update(mock_validate):
     expected = {'id': TEST_ID}
     mock_validate.return_value = None
-    by_id = characters.REPO_CHARACTERS['by_id']
+    by_id = characters.REPO['by_id']
     by_id[TEST_ID] = expected
     actual = characters.save({'id': TEST_ID})
     assert expected == actual
@@ -120,7 +119,7 @@ def test_validate_character_duplicate_name(mock_find_by_account):
 
 def test_find_character_by_id():
     expected = 'foobar'
-    by_id = characters.REPO_CHARACTERS['by_id']
+    by_id = characters.REPO['by_id']
     by_id[TEST_ID] = expected
     assert characters.find_by_id(TEST_ID) == expected
 
@@ -134,7 +133,7 @@ def test_find_character_by_id_not_found():
 
 def test_find_characters_by_account():
     expected = ['one', 'two', 'three']
-    by_account = characters.REPO_CHARACTERS['by_account']
+    by_account = characters.REPO['by_account']
     by_account[TEST_ACCOUNT] = expected
     actual = characters.find_by_account(TEST_ACCOUNT)
     assert expected == actual
