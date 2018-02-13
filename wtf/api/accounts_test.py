@@ -30,14 +30,8 @@ def test_client():
 
 
 @patch('wtf.api.accounts.save')
-@patch('wtf.api.accounts.find_by_email')
-def test_handle_create_account_request(
-        mock_find_by_email,
-        mock_save,
-        test_client
-    ):
+def test_handle_post_account_request(mock_save, test_client):
     expected = 'foobar'
-    mock_find_by_email.return_value = None
     mock_save.return_value = expected
     response = test_client.post(
         body={'email': TEST_EMAIL, 'password': TEST_PASSWORD_PLAIN}
@@ -46,7 +40,7 @@ def test_handle_create_account_request(
     response.assert_body(expected)
 
 
-def test_handle_create_account_request_content_type_not_json(test_client):
+def test_handle_post_account_request_content_type_not_json(test_client):
     response = test_client.post(headers={'Content-Type': 'text/html'})
     response.assert_status_code(400)
     response.assert_body({
@@ -55,7 +49,7 @@ def test_handle_create_account_request_content_type_not_json(test_client):
 
 
 @patch('wtf.api.accounts.validate')
-def test_handle_create_account_request_invalid(mock_validate, test_client):
+def test_handle_post_account_request_invalid(mock_validate, test_client):
     mock_validate.side_effect = ValidationError(
         errors=['foo', 'bar', 'baz']
     )
@@ -109,6 +103,15 @@ def test_save_account_update(mock_validate):
     assert expected == actual
     assert expected == by_id[TEST_ID]
     assert expected == by_email[TEST_EMAIL]
+
+
+@patch('wtf.api.accounts.find_by_email')
+def test_validate_account(mock_find_by_email):
+    mock_find_by_email.side_effect = NotFoundError('foo bar baz')
+    accounts.validate({
+        'email': TEST_EMAIL,
+        'password': TEST_PASSWORD_PLAIN
+    })
 
 
 def test_validate_account_missing_fields():
