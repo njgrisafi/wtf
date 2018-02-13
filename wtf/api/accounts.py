@@ -76,8 +76,12 @@ def validate(account):
     errors = []
     if not email:
         errors.append('Missing required field: email')
-    elif find_by_email(email) is not None:
-        errors.append('Email address already registered')
+    else:
+        try:
+            find_by_email(email)
+            errors.append('Email address already registered')
+        except NotFoundError:
+            pass
     if not password:
         errors.append('Missing required field: password')
     if errors:

@@ -34,7 +34,7 @@ def test_client():
 
 
 @patch('wtf.api.weaponrecipes.save')
-def test_handle_create_character_request(mock_save, test_client):
+def test_handle_post_character_request(mock_save, test_client):
     expected = 'foobar'
     mock_save.return_value = 'foobar'
     response = test_client.post(
@@ -63,7 +63,7 @@ def test_handle_create_character_request(mock_save, test_client):
     response.assert_body(expected)
 
 
-def test_handle_create_weapon_recipe_request_content_type_not_json(test_client):
+def test_handle_post_weapon_recipe_request_content_type_not_json(test_client):
     response = test_client.post(headers={'Content-Type': 'text/html'})
     response.assert_status_code(400)
     response.assert_body({

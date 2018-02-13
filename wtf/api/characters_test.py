@@ -26,7 +26,7 @@ def test_client():
 
 @patch('wtf.api.characters.save')
 @patch('wtf.api.characters.find_by_account')
-def test_handle_create_character_request(
+def test_handle_post_character_request(
         mock_find_by_account,
         mock_save,
         test_client
@@ -41,7 +41,7 @@ def test_handle_create_character_request(
     response.assert_body(expected)
 
 
-def test_handle_create_character_request_content_type_not_json(test_client):
+def test_handle_post_character_request_content_type_not_json(test_client):
     response = test_client.post(headers={'Content-Type': 'text/html'})
     response.assert_status_code(400)
     response.assert_body({
@@ -50,7 +50,7 @@ def test_handle_create_character_request_content_type_not_json(test_client):
 
 
 @patch('wtf.api.characters.validate')
-def test_handle_create_character_request_invalid(mock_validate, test_client):
+def test_handle_post_character_request_invalid(mock_validate, test_client):
     mock_validate.side_effect = ValidationError(
         errors=['foo', 'bar', 'baz']
     )
