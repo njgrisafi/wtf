@@ -130,7 +130,6 @@ def test_find_character_by_id_not_found():
     assert str(e.value) == 'Character not found'
 
 
-
 def test_find_characters_by_account():
     expected = ['one', 'two', 'three']
     by_account = characters.REPO['by_account']
