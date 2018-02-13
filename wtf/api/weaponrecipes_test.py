@@ -2,49 +2,133 @@
 import pytest
 from mock import patch
 from wtf.api import weaponrecipes
-from wtf.api.errors import ValidationError
+from wtf.api.app import create_app
+from wtf.api.errors import NotFoundError, ValidationError
+from wtf.testing import create_test_client
 
 
-TEST_ID = '2513cb35-9a34-4612-8541-4916035979f3'
+TEST_DATA = {
+    'id': '2513cb35-9a34-4612-8541-4916035979f3',
+    'type': 'sword',
+    'name': 'Foo Sword',
+    'description': 'The mightiest sword in all the land.',
+    'handedness': 2,
+    'weight': {'center': 12, 'radius': 3},
+    'damage': {
+        'min': {'center': 50, 'radius': 10},
+        'max': {'center': 100, 'radius': 10}
+    }
+}
 
 
 def setup_function():
     weaponrecipes.REPO = {'by_id': {}}
 
 
+@pytest.fixture
+def test_client():
+    client = create_test_client(create_app())
+    client.set_root_path('/api/weapon-recipes')
+    client.set_default_headers({'Content-Type': 'application/json'})
+    return client
+
+
+@patch('wtf.api.weaponrecipes.save')
+def test_handle_create_character_request(mock_save, test_client):
+    expected = 'foobar'
+    mock_save.return_value = 'foobar'
+    response = test_client.post(
+        body={
+            'type': TEST_DATA['type'],
+            'name': TEST_DATA['name'],
+            'description': TEST_DATA['description'],
+            'handedness': TEST_DATA['handedness'],
+            'weight': {
+                'center': TEST_DATA['weight']['center'],
+                'radius': TEST_DATA['weight']['radius']
+            },
+            'damage': {
+                'min': {
+                    'center': TEST_DATA['damage']['min']['center'],
+                    'radius': TEST_DATA['damage']['min']['radius']
+                },
+                'max': {
+                    'center': TEST_DATA['damage']['max']['center'],
+                    'radius': TEST_DATA['damage']['max']['radius']
+                }
+            }
+        }
+    )
+    response.assert_status_code(200)
+    response.assert_body(expected)
+
+
+def test_handle_create_weapon_recipe_request_content_type_not_json(test_client):
+    response = test_client.post(headers={'Content-Type': 'text/html'})
+    response.assert_status_code(400)
+    response.assert_body({
+        'errors': ['Content-Type header must be: application/json']
+    })
+
+
+def test_handle_get_weapon_recipe_by_id_request(test_client):
+    expected = {'recipe': {'foo': 'bar'}}
+    by_id = weaponrecipes.REPO['by_id']
+    by_id[TEST_DATA['id']] = {'foo': 'bar'}
+    response = test_client.get(path='/%s' % TEST_DATA['id'])
+    response.assert_status_code(200)
+    response.assert_body(expected)
+
+
+def test_handle_get_weapon_recipe_by_id_request_not_found(test_client):
+    expected = {'errors': ['Weapon recipe not found']}
+    response = test_client.get(path='/%s' % TEST_DATA['id'])
+    response.assert_status_code(404)
+    response.assert_body(expected)
+
+
 @patch('wtf.api.weaponrecipes.uuid4')
 @patch('wtf.api.weaponrecipes.validate')
 def test_save_weapon_recipe_insert(mock_validate, mock_uuid4):
-    expected = {'id': TEST_ID}
+    expected = {'id': TEST_DATA['id']}
     mock_validate.return_value = None
-    mock_uuid4.return_value = TEST_ID
+    mock_uuid4.return_value = TEST_DATA['id']
     by_id = weaponrecipes.REPO['by_id']
     actual = weaponrecipes.save({'id': None})
     assert expected == actual
-    assert expected == by_id[TEST_ID]
+    assert expected == by_id[TEST_DATA['id']]
 
 
 @patch('wtf.api.weaponrecipes.validate')
 def test_save_weapon_recipe_update(mock_validate):
-    expected = {'id': TEST_ID}
+    expected = {'id': TEST_DATA['id']}
     mock_validate.return_value = None
     by_id = weaponrecipes.REPO['by_id']
-    by_id[TEST_ID] = expected
-    actual = weaponrecipes.save({'id': TEST_ID})
+    by_id[TEST_DATA['id']] = expected
+    actual = weaponrecipes.save({'id': TEST_DATA['id']})
     assert expected == actual
-    assert expected == by_id[TEST_ID]
+    assert expected == by_id[TEST_DATA['id']]
 
 
 def test_validate_weapon_recipe():
     weaponrecipes.validate({
-        'type': 'sword',
-        'name': 'Foo Sword',
-        'description': 'The mightiest sword in all the land.',
-        'handedness': 2,
-        'weight': {'center': 12, 'radius': 3},
+        'type': TEST_DATA['type'],
+        'name': TEST_DATA['name'],
+        'description': TEST_DATA['description'],
+        'handedness': TEST_DATA['handedness'],
+        'weight': {
+            'center': TEST_DATA['weight']['center'],
+            'radius': TEST_DATA['weight']['radius']
+        },
         'damage': {
-            'min': {'center': 50, 'radius': 10},
-            'max': {'center': 100, 'radius': 10}
+            'min': {
+                'center': TEST_DATA['damage']['min']['center'],
+                'radius': TEST_DATA['damage']['min']['radius']
+            },
+            'max': {
+                'center': TEST_DATA['damage']['max']['center'],
+                'radius': TEST_DATA['damage']['max']['radius']
+            }
         }
     })
 
@@ -138,27 +222,58 @@ def test_validate_weapon_recipe_min_damage_intersects_max_damage():
     assert expected in e.value.errors
 
 
+def test_find_weapon_recipe_by_id():
+    expected = 'foobar'
+    by_id = weaponrecipes.REPO['by_id']
+    by_id[TEST_DATA['id']] = expected
+    assert weaponrecipes.find_by_id(TEST_DATA['id']) == expected
+
+
+def test_find_weapon_recipe_by_id_not_found():
+    with pytest.raises(NotFoundError) as e:
+        weaponrecipes.find_by_id('foobar')
+    assert str(e.value) == 'Weapon recipe not found'
+
+
 def test_create_weapon_recipe():
     expected = {
-        'type': 'sword',
-        'name': 'Foo Sword',
-        'description': 'The mightiest sword in all the land.',
-        'handedness': 2,
-        'weight': {'center': 12, 'radius': 3},
+        'type': TEST_DATA['type'],
+        'name': TEST_DATA['name'],
+        'description': TEST_DATA['description'],
+        'handedness': TEST_DATA['handedness'],
+        'weight': {
+            'center': TEST_DATA['weight']['center'],
+            'radius': TEST_DATA['weight']['radius']
+        },
         'damage': {
-            'min': {'center': 45, 'radius': 6},
-            'max': {'center': 78, 'radius': 9}
+            'min': {
+                'center': TEST_DATA['damage']['min']['center'],
+                'radius': TEST_DATA['damage']['min']['radius']
+            },
+            'max': {
+                'center': TEST_DATA['damage']['max']['center'],
+                'radius': TEST_DATA['damage']['max']['radius']
+            }
         }
     }
     actual = weaponrecipes.create(
-        type='sword',
-        name='Foo Sword',
-        description='The mightiest sword in all the land.',
-        handedness=2,
-        weight=dict(center=12, radius=3),
+        type=TEST_DATA['type'],
+        name=TEST_DATA['name'],
+        description=TEST_DATA['description'],
+        handedness=TEST_DATA['handedness'],
+        weight=dict(
+            center=TEST_DATA['weight']['center'],
+            radius=TEST_DATA['weight']['radius']
+        ),
         damage=dict(
-            min=dict(center=45, radius=6),
-            max=dict(center=78, radius=9)
+            min=dict(
+                center=TEST_DATA['damage']['min']['center'],
+                radius=TEST_DATA['damage']['min']['radius']
+            ),
+            max=dict(
+                center=TEST_DATA['damage']['max']['center'],
+                radius=TEST_DATA['damage']['max']['radius']
+            )
         )
     )
     assert expected == actual

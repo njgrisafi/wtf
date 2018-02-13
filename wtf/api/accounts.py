@@ -14,7 +14,7 @@ REPO = {'by_id': {}, 'by_email': {}}
 
 
 @BLUEPRINT.route('', methods=['POST'])
-def handle_create_request():
+def handle_post_request():
     '''Handle account creation requests.
 
     $ curl \

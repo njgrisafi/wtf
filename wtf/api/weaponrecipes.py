@@ -21,12 +21,83 @@ Weapon recipes have the following properties:
     > maximum damage.max = damage.max.center + damage.max.radius
 '''
 from uuid import uuid4
+from flask import Blueprint, jsonify, request
 from wtf.api import util
-from wtf.api.errors import ValidationError
+from wtf.api.errors import NotFoundError, ValidationError
 
 
-WEAPON_TYPES = ['sword', 'axe', 'mace', 'dagger', 'bow']
+BLUEPRINT = Blueprint('weapon-recipes', __name__)
 REPO = {'by_id': {}}
+WEAPON_TYPES = ['sword', 'axe', 'mace', 'dagger', 'bow']
+
+
+@BLUEPRINT.route('', methods=['POST'])
+def handle_post_request():
+    '''Handle weapon recipe POST requests.
+
+    $ curl \
+        --request POST \
+        --url http://localhost:5000/api/weapon-recipes \
+        --header "Content-Type: application/json" \
+        --write-out "\n" \
+        --data '{
+            "type": "...",
+            "name": "...",
+            "description": "...",
+            "handedness": ...,
+            "weight": {
+                "center": ...,
+                "radius": ...
+            },
+            "damage": {
+                "min": {
+                    "center": ...,
+                    "radius": ...
+                },
+                "max": {
+                    "center": ...,
+                    "radius": ...
+                }
+            }
+        }'
+    '''
+    util.validate_request(content_type='application/json')
+    body = request.get_json(silent=True) or {}
+    weight = body.get('weight', {})
+    damage = body.get('damage', {})
+    damage_min = damage.get('min', {})
+    damage_max = damage.get('max', {})
+    recipe = save(create(
+        type=body.get('type'),
+        name=body.get('name'),
+        description=body.get('description'),
+        handedness=body.get('handedness'),
+        weight=dict(center=weight.get('center'), radius=weight.get('radius')),
+        damage=dict(
+            min=dict(
+                center=damage_min.get('center'),
+                radius=damage_min.get('radius')
+            ),
+            max=dict(
+                center=damage_max.get('center'),
+                radius=damage_max.get('radius')
+            )
+        )
+    ))
+    return jsonify(recipe), 200
+
+
+@BLUEPRINT.route('/<recipe_id>', methods=['GET'])
+def handle_get_by_id_request(recipe_id):
+    '''Handle weapon recipe GET by id requests.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/weapon-recipes/<id> \
+        --write-out "\n"
+    '''
+    recipe = find_by_id(recipe_id)
+    return jsonify({'recipe': recipe}), 200
 
 
 def save(recipe):
@@ -141,6 +212,17 @@ def validate_damage(recipe):
         errors.append('Min damage must always be less than max damage')
     if errors:
         raise ValidationError(errors=errors)
+
+
+def find_by_id(recipe_id):
+    '''Find a weapon recipe with the provided id.
+
+    Raises a NotFoundError if the recipe could not be found.
+    '''
+    recipe = REPO.get('by_id').get(recipe_id)
+    if recipe is None:
+        raise NotFoundError('Weapon recipe not found')
+    return recipe
 
 
 def create(**kwargs):
