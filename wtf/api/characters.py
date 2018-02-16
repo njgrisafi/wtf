@@ -33,7 +33,7 @@ def handle_post_request():
         account=body.get('account'),
         name=body.get('name')
     ))
-    return jsonify(character), 200
+    return jsonify(character), 201
 
 
 @BLUEPRINT.route('/<character_id>', methods=['GET'])
