@@ -84,7 +84,7 @@ def handle_post_request():
             )
         )
     ))
-    return jsonify(recipe), 201
+    return jsonify({'recipe': recipe}), 201
 
 
 @BLUEPRINT.route('/<recipe_id>', methods=['GET'])
@@ -98,6 +98,34 @@ def handle_get_by_id_request(recipe_id):
     '''
     recipe = find_by_id(recipe_id)
     return jsonify({'recipe': recipe}), 200
+
+
+def create(**kwargs):
+    '''Create a weapon recipe.'''
+    weight = kwargs.get('weight', {})
+    damage = kwargs.get('damage', {})
+    damage_min = damage.get('min', {})
+    damage_max = damage.get('max', {})
+    return {
+        'type': kwargs.get('type'),
+        'name': kwargs.get('name'),
+        'description': kwargs.get('description'),
+        'handedness': kwargs.get('handedness', 1),
+        'weight': {
+            'center': weight.get('center', 0),
+            'radius': weight.get('radius', 0)
+        },
+        'damage': {
+            'min': {
+                'center': damage_min.get('center', 0),
+                'radius': damage_min.get('radius', 0)
+            },
+            'max': {
+                'center': damage_max.get('center', 0),
+                'radius': damage_max.get('radius', 0)
+            }
+        }
+    }
 
 
 def save(recipe):
@@ -223,31 +251,3 @@ def find_by_id(recipe_id):
     if recipe is None:
         raise NotFoundError('Weapon recipe not found')
     return recipe
-
-
-def create(**kwargs):
-    '''Create a weapon recipe.'''
-    weight = kwargs.get('weight', {})
-    damage = kwargs.get('damage', {})
-    damage_min = damage.get('min', {})
-    damage_max = damage.get('max', {})
-    return {
-        'type': kwargs.get('type'),
-        'name': kwargs.get('name'),
-        'description': kwargs.get('description'),
-        'handedness': kwargs.get('handedness', 1),
-        'weight': {
-            'center': weight.get('center', 0),
-            'radius': weight.get('radius', 0)
-        },
-        'damage': {
-            'min': {
-                'center': damage_min.get('center', 0),
-                'radius': damage_min.get('radius', 0)
-            },
-            'max': {
-                'center': damage_max.get('center', 0),
-                'radius': damage_max.get('radius', 0)
-            }
-        }
-    }
