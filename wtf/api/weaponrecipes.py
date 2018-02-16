@@ -84,7 +84,7 @@ def handle_post_request():
             )
         )
     ))
-    return jsonify(recipe), 200
+    return jsonify(recipe), 201
 
 
 @BLUEPRINT.route('/<recipe_id>', methods=['GET'])

@@ -36,7 +36,7 @@ def test_handle_post_account_request(mock_save, test_client):
     response = test_client.post(
         body={'email': TEST_EMAIL, 'password': TEST_PASSWORD_PLAIN}
     )
-    response.assert_status_code(200)
+    response.assert_status_code(201)
     response.assert_body(expected)
 
 

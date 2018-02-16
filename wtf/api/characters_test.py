@@ -37,7 +37,7 @@ def test_handle_post_character_request(
     response = test_client.post(
         body={'account': TEST_ACCOUNT, 'name': TEST_NAME}
     )
-    response.assert_status_code(200)
+    response.assert_status_code(201)
     response.assert_body(expected)
 
 
