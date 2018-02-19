@@ -36,8 +36,8 @@ class Client(object):
         '''Send a POST request'''
         path = '%s%s' % (self.root_path, kwargs.get('path', ''))
         headers = kwargs.get('headers', self.default_headers)
-        body = kwargs.get('body', None)
-        data = json_dumps(body) if body else None
+        body = kwargs.get('body')
+        data = json_dumps(body) if body is not None else None
         response = self.test_client.post(
             path=path,
             headers=headers,

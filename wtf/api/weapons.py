@@ -11,7 +11,7 @@ Weapons have the following properties:
 '''
 import random
 from uuid import uuid4
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 from wtf.api import util, weaponrecipes
 from wtf.api.errors import NotFoundError, ValidationError
 
@@ -33,12 +33,11 @@ def handle_post_request():
             "recipe": "...",
         }'
     '''
-    util.validate_request(content_type='application/json')
-    body = request.get_json(silent=True) or {}
+    body = util.get_json_body()
     weapon = save(create(
         recipe=body.get('recipe')
     ))
-    return jsonify({'weapon': derive(weapon)}), 201
+    return jsonify({'weapon': transform(weapon)}), 201
 
 
 @BLUEPRINT.route('/<weapon_id>', methods=['GET'])
@@ -51,7 +50,7 @@ def handle_get_request(weapon_id):
         --write-out "\n"
     '''
     weapon = find_by_id(weapon_id)
-    return jsonify({'weapon': derive(weapon)}), 200
+    return jsonify({'weapon': transform(weapon)}), 200
 
 
 def create(**kwargs):
@@ -69,15 +68,23 @@ def generate_grade():
     return random.uniform(0.0, 1.0)
 
 
-def derive(weapon):
-    '''Derive weapon field values.'''
+def transform(weapon):
+    '''Transform weapon fields.
+
+    The following transformations will be performed:
+      * name and description: defaulted to recipe values if None
+      * grade: replaced with +0 to +9 form
+      * weight: derived from recipe and grade
+      * damage.min: derived from recipe and grade
+      * damage.max: derived from recipe and grade
+    '''
     weapon = weapon.copy()
     recipe = weaponrecipes.find_by_id(weapon.get('recipe'))
     if not weapon.get('name'):
         weapon['name'] = recipe.get('name')
     if not weapon.get('description'):
         weapon['description'] = recipe.get('description')
-    grade = weapon.pop('grade')
+    grade = weapon.get('grade')
     weapon['grade'] = '+%s' % int(grade * 10)
     weapon['weight'] = util.interval_grade_value(
         recipe.get('weight'),

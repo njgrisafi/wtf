@@ -6,6 +6,7 @@ Miscellaneous utilities.
 from hashlib import sha256
 from uuid import uuid4
 from flask import request
+from werkzeug.exceptions import BadRequest
 from wtf.api.errors import ValidationError
 
 
@@ -22,16 +23,17 @@ def salt_and_hash_compare(plaintext, value):
     return salt_and_hash(plaintext, value[:64]) == value
 
 
-def validate_request(content_type=None):
-    '''Validate an HTTP request.
-
-    Returns a list of validation errors, if any.
-    '''
-    errors = []
-    if content_type and request.content_type != content_type:
-        errors.append('Content-Type header must be: %s' % content_type)
-    if errors:
-        raise ValidationError(errors=errors)
+def get_json_body():
+    '''Get the JSON request body.'''
+    body = None
+    if request.content_type != 'application/json':
+        raise ValidationError('Content-Type header must be: application/json')
+    else:
+        try:
+            body = request.get_json()
+        except BadRequest:
+            raise ValidationError('Unable to parse JSON request body')
+    return body
 
 
 def interval_intersect(interval_1, interval_2):

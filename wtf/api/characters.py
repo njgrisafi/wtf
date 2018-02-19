@@ -16,7 +16,7 @@ Characters have the following properties:
     * accuracy: increases normal and critical attack chance
 '''
 from uuid import uuid4
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 from wtf.api import util
 from wtf.api.errors import NotFoundError, ValidationError
 
@@ -39,8 +39,7 @@ def handle_post_request():
             "name": "..."
         }'
     '''
-    util.validate_request(content_type='application/json')
-    body = request.get_json(silent=True) or {}
+    body = util.get_json_body()
     character = save(create(
         account=body.get('account'),
         name=body.get('name')
@@ -112,7 +111,7 @@ def save(character):
     '''
     character = character.copy()
     if character.get('id') is None:
-        character['id'] = uuid4()
+        character['id'] = str(uuid4())
     validate(character)
     REPO.get('by_id')[character.get('id')] = character
     REPO.get('by_account') \

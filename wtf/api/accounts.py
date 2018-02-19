@@ -7,7 +7,7 @@ Accounts have the following properties:
   * password: the password used to authenticate as the account
 '''
 from uuid import uuid4
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 from wtf.api import util
 from wtf.api.errors import NotFoundError, ValidationError
 
@@ -30,8 +30,7 @@ def handle_post_request():
             "password": "..."
         }'
     '''
-    util.validate_request(content_type='application/json')
-    body = request.get_json(silent=True) or {}
+    body = util.get_json_body()
     account = save(create(
         email=body.get('email'),
         password=body.get('password')
@@ -49,9 +48,7 @@ def handle_get_by_id_request(account_id):
         --write-out "\n"
     '''
     account = find_by_id(account_id)
-    account = account.copy()
-    account.pop('password')
-    return jsonify({'account': account}), 200
+    return jsonify({'account': transform(account)}), 200
 
 
 def create(**kwargs):
@@ -64,6 +61,17 @@ def create(**kwargs):
         'email': email,
         'password': util.salt_and_hash(password) if password else None
     }
+
+
+def transform(account):
+    '''Transform account fields.
+
+    The following transformations will be performed:
+      * password: removed
+    '''
+    account = account.copy()
+    account.pop('password')
+    return account
 
 
 def save(account):
