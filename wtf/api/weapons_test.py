@@ -1,7 +1,7 @@
 # pylint: disable=missing-docstring,invalid-name,redefined-outer-name
 import pytest
 from mock import Mock, patch
-from wtf.api import weapons
+from wtf.api import weapons, weaponrecipes_test
 from wtf.api.app import create_app
 from wtf.api.errors import NotFoundError, ValidationError
 from wtf.testing import create_test_client
@@ -9,12 +9,15 @@ from wtf.testing import create_test_client
 
 TEST_DATA = {
     'id': 'ebe3f790-a7da-447b-86b3-82efd7e52ff4',
-    'recipe': {
-        'id': 'd2e0c2df-cacf-4bf7-bda0-fc5413b5d8b2'
-    },
+    'recipe': weaponrecipes_test.TEST_DATA,
     'name': 'Universal Foo Sword',
     'description': 'The mightiest sword in all the universe.',
-    'grade': 0.345
+    'grade': 0.345,
+    'weight': 12.93,
+    'damage': {
+        'min': 46.9,
+        'max': 96.9
+    }
 }
 
 
@@ -30,12 +33,14 @@ def test_client():
     return client
 
 
+@patch('wtf.api.weapons.derive')
 @patch('wtf.api.weapons.save')
-def test_handle_post_weapon_request(mock_save, test_client):
+def test_handle_post_weapon_request(mock_save, mock_derive, test_client):
     mock_save.return_value = 'foobar'
+    mock_derive.return_value = 'foobar-derived'
     response = test_client.post()
     response.assert_status_code(201)
-    response.assert_body({'weapon': 'foobar'})
+    response.assert_body({'weapon': 'foobar-derived'})
 
 
 @patch('wtf.api.weapons.save')
@@ -59,12 +64,18 @@ def test_handle_post_weapon_request_invalid(mock_save, test_client):
     response.assert_body({'errors': ['foo', 'bar', 'baz']})
 
 
+@patch('wtf.api.weapons.derive')
 @patch('wtf.api.weapons.find_by_id')
-def test_handle_get_weapon_by_id_request(mock_find_by_id, test_client):
+def test_handle_get_weapon_by_id_request(
+        mock_find_by_id,
+        mock_derive,
+        test_client
+    ):
     mock_find_by_id.return_value = 'foobar'
+    mock_derive.return_value = 'foobar-derived'
     response = test_client.get(path='/%s' % TEST_DATA['id'])
     response.assert_status_code(200)
-    response.assert_body({'weapon': 'foobar'})
+    response.assert_body({'weapon': 'foobar-derived'})
 
 
 def test_handle_get_weapon_by_id_request_not_found(test_client):
@@ -99,6 +110,39 @@ def test_create_weapon_defaults(mock_generate_grade):
         'grade': 0.123
     }
     actual = weapons.create()
+    assert expected == actual
+
+
+
+@pytest.mark.parametrize("name,description", [
+    pytest.param(TEST_DATA['name'], TEST_DATA['description']),
+    pytest.param(None, None)
+])
+@patch('wtf.api.weapons.weaponrecipes')
+def test_derive_weapon(mock_weaponrecipes, name, description):
+    recipe = TEST_DATA.get('recipe')
+    mock_weaponrecipes.find_by_id = Mock(return_value=recipe)
+    expected = {
+        'name': recipe['name'] if not name else name,
+        'description': (
+            recipe['description'] if not description else description
+        ),
+        'recipe': recipe['id'],
+        'grade': '+%s' % int(TEST_DATA['grade'] * 10),
+        'weight': TEST_DATA['weight'],
+        'damage': {
+            'min': TEST_DATA['damage']['min'],
+            'max': TEST_DATA['damage']['max']
+        },
+        'other': 'fields'
+    }
+    actual = weapons.derive({
+        'recipe': recipe['id'],
+        'grade': TEST_DATA['grade'],
+        'other': 'fields',
+        'name': name,
+        'description': description
+    })
     assert expected == actual
 
 

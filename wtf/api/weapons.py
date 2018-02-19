@@ -38,7 +38,7 @@ def handle_post_request():
     weapon = save(create(
         recipe=body.get('recipe')
     ))
-    return jsonify({'weapon': weapon}), 201
+    return jsonify({'weapon': derive(weapon)}), 201
 
 
 @BLUEPRINT.route('/<weapon_id>', methods=['GET'])
@@ -51,11 +51,11 @@ def handle_get_request(weapon_id):
         --write-out "\n"
     '''
     weapon = find_by_id(weapon_id)
-    return jsonify({'weapon': weapon}), 200
+    return jsonify({'weapon': derive(weapon)}), 200
 
 
 def create(**kwargs):
-    '''Create a weapon'''
+    '''Create a weapon.'''
     return {
         'recipe': kwargs.get('recipe'),
         'name': kwargs.get('name'),
@@ -65,8 +65,31 @@ def create(**kwargs):
 
 
 def generate_grade():
-    '''Generate a weapon grade'''
+    '''Generate a weapon grade.'''
     return random.uniform(0.0, 1.0)
+
+
+def derive(weapon):
+    '''Derive weapon field values.'''
+    weapon = weapon.copy()
+    recipe = weaponrecipes.find_by_id(weapon.get('recipe'))
+    if not weapon.get('name'):
+        weapon['name'] = recipe.get('name')
+    if not weapon.get('description'):
+        weapon['description'] = recipe.get('description')
+    grade = weapon.pop('grade')
+    weapon['grade'] = '+%s' % int(grade * 10)
+    weapon['weight'] = util.interval_grade_value(
+        recipe.get('weight'),
+        grade,
+        correlation='-'
+    )
+    damage = recipe.get('damage')
+    weapon['damage'] = {
+        'min': util.interval_grade_value(damage.get('min'), grade),
+        'max': util.interval_grade_value(damage.get('max'), grade)
+    }
+    return weapon
 
 
 def save(weapon):

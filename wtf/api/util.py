@@ -46,13 +46,33 @@ def interval_intersect(interval_1, interval_2):
         )
     '''
     interval_1_min = interval_1['center'] - interval_1['radius']
-    interval_1_range = interval_1['radius'] * 2
+    interval_1_diameter = interval_1['radius'] * 2
     interval_2_min = interval_2['center'] - interval_2['radius']
-    interval_2_range = interval_2['radius'] * 2
+    interval_2_diameter = interval_2['radius'] * 2
     min_diff = interval_2_min - interval_1_min
-    range_diff = interval_1_range - interval_2_range
-    intersect_x = min_diff / range_diff if range_diff != 0 else None
+    diameter_diff = interval_1_diameter - interval_2_diameter
+    intersect_x = min_diff / diameter_diff if diameter_diff != 0 else None
     intersect_y = None
     if intersect_x is not None and (0 < intersect_x < 1):
-        intersect_y = interval_1_range * intersect_x + interval_1_min
+        intersect_y = interval_1_diameter * intersect_x + interval_1_min
     return intersect_y
+
+
+def interval_grade_value(interval, grade, correlation='+'):
+    '''Calculate a value on an interval by its grade.
+
+    The interval passed to this function is assumed to be a dictionary with
+        `center` and `radius` values:
+
+        value = interval_grade_value({'center': 42', 'radius': 23}, 0.123)
+
+    If the value is negatively correlated with the grade, set correlation='-'.
+    '''
+    center = interval.get('center')
+    radius = interval.get('radius')
+    distance = (2 * radius * grade)
+    return (
+        center - radius + distance if correlation == '+'
+        else center + radius - distance if correlation == '-'
+        else None
+    )
