@@ -49,9 +49,7 @@ def handle_get_by_id_request(account_id):
         --write-out "\n"
     '''
     account = find_by_id(account_id)
-    account = account.copy()
-    account.pop('password')
-    return jsonify({'account': account}), 200
+    return jsonify({'account': transform(account)}), 200
 
 
 def create(**kwargs):
@@ -64,6 +62,17 @@ def create(**kwargs):
         'email': email,
         'password': util.salt_and_hash(password) if password else None
     }
+
+
+def transform(account):
+    '''Transform account fields.
+
+    The following transformations will be performed:
+      * password: removed
+    '''
+    account = account.copy()
+    account.pop('password')
+    return account
 
 
 def save(account):

@@ -33,14 +33,14 @@ def test_client():
     return client
 
 
-@patch('wtf.api.weapons.derive')
+@patch('wtf.api.weapons.transform')
 @patch('wtf.api.weapons.save')
-def test_handle_post_weapon_request(mock_save, mock_derive, test_client):
+def test_handle_post_weapon_request(mock_save, mock_transform, test_client):
     mock_save.return_value = 'foobar'
-    mock_derive.return_value = 'foobar-derived'
+    mock_transform.return_value = 'foobar-transformd'
     response = test_client.post()
     response.assert_status_code(201)
-    response.assert_body({'weapon': 'foobar-derived'})
+    response.assert_body({'weapon': 'foobar-transformd'})
 
 
 @patch('wtf.api.weapons.save')
@@ -64,18 +64,18 @@ def test_handle_post_weapon_request_invalid(mock_save, test_client):
     response.assert_body({'errors': ['foo', 'bar', 'baz']})
 
 
-@patch('wtf.api.weapons.derive')
+@patch('wtf.api.weapons.transform')
 @patch('wtf.api.weapons.find_by_id')
 def test_handle_get_weapon_by_id_request(
         mock_find_by_id,
-        mock_derive,
+        mock_transform,
         test_client
     ):
     mock_find_by_id.return_value = 'foobar'
-    mock_derive.return_value = 'foobar-derived'
+    mock_transform.return_value = 'foobar-transformd'
     response = test_client.get(path='/%s' % TEST_DATA['id'])
     response.assert_status_code(200)
-    response.assert_body({'weapon': 'foobar-derived'})
+    response.assert_body({'weapon': 'foobar-transformd'})
 
 
 def test_handle_get_weapon_by_id_request_not_found(test_client):
@@ -119,7 +119,7 @@ def test_create_weapon_defaults(mock_generate_grade):
     pytest.param(None, None)
 ])
 @patch('wtf.api.weapons.weaponrecipes')
-def test_derive_weapon(mock_weaponrecipes, name, description):
+def test_transform_weapon(mock_weaponrecipes, name, description):
     recipe = TEST_DATA.get('recipe')
     mock_weaponrecipes.find_by_id = Mock(return_value=recipe)
     expected = {
@@ -136,7 +136,7 @@ def test_derive_weapon(mock_weaponrecipes, name, description):
         },
         'other': 'fields'
     }
-    actual = weapons.derive({
+    actual = weapons.transform({
         'recipe': recipe['id'],
         'grade': TEST_DATA['grade'],
         'other': 'fields',

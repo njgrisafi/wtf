@@ -153,6 +153,7 @@ def test_save_weapon_recipe_invalid(mock_validate):
 
 def test_validate_weapon_recipe():
     weaponrecipes.validate({
+        'id': TEST_DATA['id'],
         'type': TEST_DATA['type'],
         'name': TEST_DATA['name'],
         'description': TEST_DATA['description'],
@@ -176,6 +177,7 @@ def test_validate_weapon_recipe():
 
 def test_validate_weapon_recipe_missing_fields():
     expected = [
+        'Missing required field: id',
         'Missing required field: type',
         'Missing required field: name',
         'Missing required field: description',

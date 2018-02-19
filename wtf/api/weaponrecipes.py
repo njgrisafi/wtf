@@ -137,9 +137,9 @@ def save(recipe):
     Raises a ValidationError if the recipe is invalid.
     '''
     recipe = recipe.copy()
-    validate(recipe)
     if recipe.get('id') is None:
         recipe['id'] = uuid4()
+    validate(recipe)
     REPO.get('by_id')[recipe.get('id')] = recipe
     return recipe
 
@@ -204,6 +204,7 @@ def validate_damage(recipe):
     Raises a ValidationError if the recipe's damage fields are invalid.
     '''
     errors = []
+    recipe_id = recipe.get('id')
     damage = recipe.get('damage', {})
     damage_min = damage.get('min', {})
     damage_min_center = damage_min.get('center')
@@ -211,6 +212,8 @@ def validate_damage(recipe):
     damage_max = damage.get('max', {})
     damage_max_center = damage_max.get('center')
     damage_max_radius = damage_max.get('radius')
+    if recipe_id is None:
+        errors.append('Missing required field: id')
     if None in [damage_min_center, damage_min_radius]:
         if damage_min_center is None:
             errors.append('Missing required field: damage.min.center')
