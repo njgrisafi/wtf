@@ -38,28 +38,15 @@ def test_client():
 def test_handle_post_weapon_request(mock_save, mock_transform, test_client):
     mock_save.return_value = 'foobar'
     mock_transform.return_value = 'foobar-transformd'
-    response = test_client.post()
+    response = test_client.post(body={})
     response.assert_status_code(201)
     response.assert_body({'weapon': 'foobar-transformd'})
 
 
 @patch('wtf.api.weapons.save')
-def test_handle_post_weapon_request_content_type_not_json(
-        mock_save,
-        test_client
-    ):
-    response = test_client.post(headers={'Content-Type': 'text/html'})
-    response.assert_status_code(400)
-    response.assert_body(
-        {'errors': ['Content-Type header must be: application/json']}
-    )
-    mock_save.assert_not_called()
-
-
-@patch('wtf.api.weapons.save')
 def test_handle_post_weapon_request_invalid(mock_save, test_client):
     mock_save.side_effect = ValidationError(errors=['foo', 'bar', 'baz'])
-    response = test_client.post()
+    response = test_client.post(body={})
     response.assert_status_code(400)
     response.assert_body({'errors': ['foo', 'bar', 'baz']})
 

@@ -11,7 +11,7 @@ Weapons have the following properties:
 '''
 import random
 from uuid import uuid4
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 from wtf.api import util, weaponrecipes
 from wtf.api.errors import NotFoundError, ValidationError
 
@@ -33,8 +33,7 @@ def handle_post_request():
             "recipe": "...",
         }'
     '''
-    util.validate_request(content_type='application/json')
-    body = request.get_json(silent=True) or {}
+    body = util.get_json_body()
     weapon = save(create(
         recipe=body.get('recipe')
     ))

@@ -7,7 +7,7 @@ Accounts have the following properties:
   * password: the password used to authenticate as the account
 '''
 from uuid import uuid4
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 from wtf.api import util
 from wtf.api.errors import NotFoundError, ValidationError
 
@@ -30,8 +30,7 @@ def handle_post_request():
             "password": "..."
         }'
     '''
-    util.validate_request(content_type='application/json')
-    body = request.get_json(silent=True) or {}
+    body = util.get_json_body()
     account = save(create(
         email=body.get('email'),
         password=body.get('password')

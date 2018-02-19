@@ -34,19 +34,19 @@ def test_client():
 
 
 @patch('wtf.api.weaponrecipes.save')
-def test_handle_post_character_request(mock_save, test_client):
+def test_handle_post_weaponrecipe_request(mock_save, test_client):
     mock_save.return_value = 'foobar'
-    response = test_client.post()
+    response = test_client.post(body={})
     response.assert_status_code(201)
     response.assert_body({'recipe': 'foobar'})
 
 
-def test_handle_post_weapon_recipe_request_content_type_not_json(test_client):
-    response = test_client.post(headers={'Content-Type': 'text/html'})
+@patch('wtf.api.weaponrecipes.save')
+def test_handle_post_weapon_recipe_request_invalid(mock_save, test_client):
+    mock_save.side_effect = ValidationError(errors=['foo', 'bar', 'baz'])
+    response = test_client.post(body={})
     response.assert_status_code(400)
-    response.assert_body({
-        'errors': ['Content-Type header must be: application/json']
-    })
+    response.assert_body({'errors': ['foo', 'bar', 'baz']})
 
 
 @patch('wtf.api.weaponrecipes.find_by_id')

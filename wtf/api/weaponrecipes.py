@@ -21,7 +21,7 @@ Weapon recipes have the following properties:
     > maximum damage.max = damage.max.center + damage.max.radius
 '''
 from uuid import uuid4
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 from wtf.api import util
 from wtf.api.errors import NotFoundError, ValidationError
 
@@ -61,8 +61,7 @@ def handle_post_request():
             }
         }'
     '''
-    util.validate_request(content_type='application/json')
-    body = request.get_json(silent=True) or {}
+    body = util.get_json_body()
     weight = body.get('weight', {})
     damage = body.get('damage', {})
     damage_min = damage.get('min', {})
@@ -138,7 +137,7 @@ def save(recipe):
     '''
     recipe = recipe.copy()
     if recipe.get('id') is None:
-        recipe['id'] = uuid4()
+        recipe['id'] = str(uuid4())
     validate(recipe)
     REPO.get('by_id')[recipe.get('id')] = recipe
     return recipe
