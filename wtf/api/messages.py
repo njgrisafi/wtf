@@ -29,8 +29,7 @@ def handle_create_request():
             "recipients": ["..."],
         }'
     '''
-    util.validate_request(content_type='application/json')
-    body = request.get_json(silent=True) or {}
+    body = util.get_json_body()
     message = save(create(
         subject=body.get('subject'),
         body=body.get('body'),
