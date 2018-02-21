@@ -46,6 +46,24 @@ def test_handle_create_message_request(
     response.assert_body({'message': 'foobar'})
 
 
+@patch('wtf.api.messages.save')
+@patch('wtf.api.messages.find_by_id')
+def test_handle_create_message_reply_request(
+        mock_save,
+        mock_find_by_id,
+        test_client
+    ):
+    expected = 'foobar'
+    mock_save.return_value = expected
+    mock_find_by_id.return_value = expected
+    response = test_client.post(
+        path='/%s/replies' % TEST_DATA['id'],
+        body={'body': TEST_DATA['body'], 'subject': TEST_DATA['subject'], 'recipients': TEST_DATA['recipients']}
+    )
+    response.assert_status_code(200)
+    response.assert_body({'message': 'foobar'})
+
+
 @patch('wtf.api.messages.find_by_id')
 def test_handle_get_by_id_request(
         mock_find_by_id,
@@ -60,7 +78,7 @@ def test_handle_get_by_id_request(
 
 
 @patch('wtf.api.messages.find_by_recipient')
-def test_handle_get_query_request(
+def test_handle_get_recipient_query_request(
         mock_find_by_recipient,
         test_client
     ):
@@ -155,3 +173,33 @@ def test_validate_message_missing_fields():
         messages.validate({})
     actual = e.value.errors
     assert set(expected).issubset(actual)
+
+
+def test_find_message_by_id():
+    expected = 'foobar'
+    messages.REPO['by_id'][TEST_DATA['id']] = expected
+    actual = messages.find_by_id(TEST_DATA['id'])
+    assert expected == actual
+
+
+def test_find_message_by_id_not_found():
+    expected = 'Message not found'
+    with pytest.raises(NotFoundError) as e:
+        messages.find_by_id(TEST_DATA['id'])
+    actual = str(e.value)
+    assert expected == actual
+
+
+def test_find_message_by_recipient():
+    expected = 'foobar'
+    messages.REPO['by_recipient'][TEST_DATA['id']] = expected
+    actual = messages.find_by_recipient(TEST_DATA['id'])
+    assert expected == actual
+
+
+def test_find_message_by_recipient_not_found():
+    expected = 'Recipient not found'
+    with pytest.raises(NotFoundError) as e:
+        messages.find_by_recipient(TEST_DATA['id'])
+    actual = str(e.value)
+    assert expected == actual

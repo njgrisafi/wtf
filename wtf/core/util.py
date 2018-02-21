@@ -34,12 +34,7 @@ def get_json_body():
 
 def get_query_args():
     '''Get the request query args.'''
-    args = None
-    try:
-        args = request.args
-    except BadRequest:
-        raise ValidationError('Unable to parse request args')
-    return args
+    return request.args
 
 
 def interval_intersect(interval_1, interval_2):

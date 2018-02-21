@@ -160,26 +160,24 @@ def create(**kwargs):
         body: the body of the message
         recipients: the list of UUID for the recipients
     '''
-    try:
-        message_id = kwargs.get('id')
-        body = kwargs.get('body')
-        subject = kwargs.get('subject', '(No Subject)')
-        recipients = kwargs.get('recipients', [])
-        parent = kwargs.get('parent')
-        message = {
-            'id': message_id,
-            'sender': None,
-            'parent': parent,
-            'subject': subject,
-            'body': body,
-            'copies': [],
-            'created_at': datetime.utcnow().isoformat()
-        }
-        for r in recipients:
-            message['copies'].append(create_copy(message, recipient=r))
-        return message
-    except Exception as e:
-        print(e)
+    message_id = kwargs.get('id')
+    body = kwargs.get('body')
+    subject = kwargs.get('subject', '(No Subject)')
+    recipients = kwargs.get('recipients', [])
+    parent = kwargs.get('parent')
+    sender = kwargs.get('sender')
+    message = {
+        'id': message_id,
+        'sender': sender,
+        'parent': parent,
+        'subject': subject,
+        'body': body,
+        'copies': [],
+        'created_at': datetime.utcnow().isoformat()
+    }
+    for r in recipients:
+        message['copies'].append(create_copy(message, recipient=r))
+    return message
 
 
 def create_copy(message, **kwargs):
