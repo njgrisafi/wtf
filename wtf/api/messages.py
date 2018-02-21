@@ -38,6 +38,32 @@ def handle_create_request():
     return jsonify({'message': message}), 200
 
 
+@BLUEPRINT.route('/<message_id>/replies', methods=['POST'])
+def handle_create_reply(message_id):
+    '''Handle reply for message by message id.
+
+    $ curl \
+        --request POST \
+        --url http://localhost:5000/api/messages/<message_id>/replies \
+        --header "Content-Type: application/json" \
+        --write-out "\n" \
+        --data '{
+            "subject": "...",
+            "body": "...",
+            "recipients": ["..."],
+        }'
+    '''
+    find_by_id(message_id)
+    body = util.get_json_body()
+    message = save(create(
+        subject=body.get('subject'),
+        body=body.get('body'),
+        recipients=body.get('recipients'),
+        parent=message_id
+    ))
+    return jsonify({'message': message}), 200
+
+
 @BLUEPRINT.route('', methods=['GET'])
 def handle_get_query_request():
     '''Handle message retrieval by Recipient ID requests.
@@ -138,13 +164,12 @@ def create(**kwargs):
         message_id = kwargs.get('id')
         body = kwargs.get('body')
         subject = kwargs.get('subject', '(No Subject)')
-        recipients = kwargs.get('recipients')
-        if not recipients:
-            recipients = []
+        recipients = kwargs.get('recipients', [])
+        parent = kwargs.get('parent')
         message = {
             'id': message_id,
             'sender': None,
-            'parent': None,
+            'parent': parent,
             'subject': subject,
             'body': body,
             'copies': [],
