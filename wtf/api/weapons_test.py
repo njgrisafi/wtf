@@ -1,4 +1,5 @@
 # pylint: disable=missing-docstring,invalid-name,redefined-outer-name
+import numpy as np
 import pytest
 from mock import Mock, patch
 from wtf.api import weapons, weaponrecipes_test
@@ -13,6 +14,21 @@ TEST_DATA = {
     'name': 'Universal Foo Sword',
     'description': 'The mightiest sword in all the universe.',
     'grade': 0.345,
+    'grade_probabilities': {
+        'default': [
+            0.90000000009,
+            0.090000000009,
+            0.0090000000009,
+            0.00090000000009,
+            9.0000000009e-05,
+            9.0000000009e-06,
+            9.0000000009e-07,
+            9.0000000009e-08,
+            9.0000000009e-09,
+            9.0000000009e-10
+        ],
+        "custom": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    },
     'weight': 12.93,
     'damage': {
         'min': 46.9,
@@ -89,16 +105,39 @@ def test_create_weapon():
 
 @patch('wtf.api.weapons.generate_grade')
 def test_create_weapon_defaults(mock_generate_grade):
-    mock_generate_grade.return_value = 0.123
+    mock_generate_grade.return_value = TEST_DATA['grade']
     expected = {
         'recipe': None,
         'name': None,
         'description': None,
-        'grade': 0.123
+        'grade': TEST_DATA['grade']
     }
     actual = weapons.create()
     assert expected == actual
 
+
+@pytest.mark.parametrize("random_value,probabilities", [
+    pytest.param(0.042, TEST_DATA['grade_probabilities']['custom']),
+    pytest.param(0.023, None)
+])
+@patch('wtf.api.weapons.np.random')
+def test_generate_weapon_grade_(mock_np_random, random_value, probabilities):
+    expected = TEST_DATA['grade']
+    mock_np_random.uniform.return_value = random_value
+    mock_np_random.choice.return_value = expected
+    actual = weapons.generate_grade(probabilities)
+    assert expected == actual
+    args, kwargs = mock_np_random.choice.call_args_list[0]
+    choices = np.array([[0.1 * i + random_value for i in range(10)]])
+    assert np.all(np.array(args) == np.array([choices]))
+    default_probabilities = TEST_DATA['grade_probabilities']['default']
+    assert kwargs == {'p': probabilities or default_probabilities}
+
+
+def test_weapon_grade_probabilities_default():
+    expected = TEST_DATA['grade_probabilities']['default']
+    actual = weapons.grade_probabilities()
+    assert expected == actual
 
 
 @pytest.mark.parametrize("name,description", [
