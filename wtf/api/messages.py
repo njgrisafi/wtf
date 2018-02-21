@@ -11,7 +11,7 @@ from wtf.api.errors import NotFoundError, ValidationError
 
 
 BLUEPRINT = Blueprint('messages', __name__)
-REPO = {'by_id': {}}
+REPO = {'by_id': {}, 'by_recipient': {}}
 
 
 @BLUEPRINT.route('', methods=['POST'])
@@ -38,6 +38,21 @@ def handle_create_request():
     return jsonify(message), 200
 
 
+@BLUEPRINT.route('', methods=['GET'])
+def handle_get_query_request():
+    '''Handle message retrieval by Recipient ID requests.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/messages?recipient=<recipient_id> \
+        --write-out "\n"
+    '''
+    args = util.get_query_args()
+    messages = find_by_recipient(args.get('recipient'))
+    messages = messages.copy()
+    return jsonify({'messages': messages}), 200
+
+
 @BLUEPRINT.route('/<message_id>', methods=['GET'])
 def handle_get_by_id_request(message_id):
     '''Handle message retrieval by ID requests.
@@ -58,9 +73,12 @@ def save(message):
     Creates a message
     '''
     message = message.copy()
-    validate(message)
     if message.get('id') is None:
         message['id'] = str(uuid4())
+    validate(message)
+    recipients = list(map(lambda m: m.get('recipient'), message.get('copies')))
+    for r in recipients:
+        REPO.get('by_recipient').setdefault(r, []).append(message)
     REPO.get('by_id')[message.get('id')] = message
     return message
 
@@ -93,6 +111,18 @@ def find_by_id(message_id):
     if message is None:
         raise NotFoundError('Message not found')
     return message
+
+
+def find_by_recipient(recipient_id):
+    '''Find messages that belong to the provided recipient id.
+
+    Raises a NotFoundError if the recipient could not be found.
+    '''
+    messages = REPO.get('by_recipient').get(recipient_id)
+    print(messages)
+    if messages is None:
+        raise NotFoundError('Recipient not found')
+    return messages
 
 
 def create(**kwargs):

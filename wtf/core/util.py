@@ -19,6 +19,29 @@ def salt_and_hash_compare(plaintext, value):
     return salt_and_hash(plaintext, value[:64]) == value
 
 
+def get_json_body():
+    '''Get the JSON request body.'''
+    body = None
+    if request.content_type != 'application/json':
+        raise ValidationError('Content-Type header must be: application/json')
+    else:
+        try:
+            body = request.get_json()
+        except BadRequest:
+            raise ValidationError('Unable to parse JSON request body')
+    return body
+
+
+def get_query_args():
+    '''Get the request query args.'''
+    args = None
+    try:
+        args = request.args
+    except BadRequest:
+        raise ValidationError('Unable to parse request args')
+    return args
+
+
 def interval_intersect(interval_1, interval_2):
     '''Find the value at which two intervals intersect.
 
