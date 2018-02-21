@@ -65,16 +65,18 @@ def handle_create_reply(message_id):
 
 
 @BLUEPRINT.route('', methods=['GET'])
-def handle_get_query_request():
-    '''Handle message retrieval by Recipient ID requests.
+def handle_get_messages_query_request():
+    '''Handle message retrieval by recipient id.
 
     $ curl \
         --request GET \
-        --url http://localhost:5000/api/messages?recipient=<recipient_id> \
+        --url http://localhost:5000/api/messages?recipient=<recipient_id>?status=<status> \
         --write-out "\n"
     '''
     args = util.get_query_args()
-    messages = find_by_recipient(args.get('recipient'))
+    status = args.get('status')
+    recipient = args.get('recipient')
+    messages = get_recipient_messages(recipient=recipient, status=status)
     return jsonify({'messages': messages}), 200
 
 
@@ -101,9 +103,9 @@ def save(message):
     if message.get('id') is None:
         message['id'] = str(uuid4())
     validate(message)
-    recipients = list(map(lambda m: m.get('recipient'), message.get('copies')))
-    for r in recipients:
-        REPO.get('by_recipient').setdefault(r, []).append(message)
+    for c in message['copies']:
+        c['message'] = message['id']
+        REPO.get('by_recipient').setdefault(c['recipient'], []).append(c)
     REPO.get('by_id')[message.get('id')] = message
     return message
 
@@ -125,6 +127,16 @@ def validate(message):
         errors.append('Missing required field: copies')
     if errors:
         raise ValidationError(errors=errors)
+
+
+def get_recipient_messages(**kwargs):
+    recipient_id = kwargs.get('recipient')
+    status = kwargs.get('status')
+    message_copies = find_by_recipient(recipient_id)
+    if status:
+        message_copies = list(filter(lambda m: m['status'] == str(status), message_copies))
+    return list(map(lambda m: find_by_id(m['message']), message_copies))
+
 
 
 def find_by_id(message_id):

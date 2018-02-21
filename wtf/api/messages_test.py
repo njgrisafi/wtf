@@ -13,11 +13,6 @@ TEST_DATA = {
     'body': 'foobar',
     'recipients': ['0c0c0c0c-0c0c-0c0c-0c0c-0c0c0c0c0c0c']
 }
-# TEST_ID = '0a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'
-# TEST_SENDER_ID = '0b0b0b0b-0b0b-0b0b-0b0b-0b0b0b0b0b0b'
-# TEST_SUBJECT = 'foo'
-# TEST_BODY = 'foobar'
-# TEST_RECIPIENTS = ['0c0c0c0c-0c0c-0c0c-0c0c-0c0c0c0c0c0c', '0d0d0d0d-0d0d-0d0d-0d0d-0d0d0d0d0d0d']
 
 
 def setup_function():
@@ -77,13 +72,13 @@ def test_handle_get_by_id_request(
         response.assert_body(expected)
 
 
-@patch('wtf.api.messages.find_by_recipient')
-def test_handle_get_recipient_query_request(
-        mock_find_by_recipient,
+@patch('wtf.api.messages.get_recipient_messages')
+def test_handle_get_message_query_request(
+        mock_get_recipient_messages,
         test_client
     ):
     expected = 'foobar'
-    mock_find_by_recipient.return_value = expected
+    mock_get_recipient_messages.return_value = expected
     response = test_client.get(
         query_string={'recipient': TEST_DATA['recipients'][0]}
     )
@@ -138,9 +133,8 @@ def test_save_message_insert(mock_validate, mock_uuid4):
     actual = messages.save(test_message)
     assert expected == actual
     assert expected == messages.REPO['by_id'][TEST_DATA['id']]
-    print(messages.REPO['by_recipient']['foo'])
-    assert [expected] == messages.REPO['by_recipient']['foo']
-    assert [expected] == messages.REPO['by_recipient']['bar']
+    assert [expected['copies'][0]] == messages.REPO['by_recipient']['foo']
+    assert [expected['copies'][1]] == messages.REPO['by_recipient']['bar']
 
 
 @patch('wtf.api.messages.validate')
@@ -173,6 +167,27 @@ def test_validate_message_missing_fields():
         messages.validate({})
     actual = e.value.errors
     assert set(expected).issubset(actual)
+
+@patch('wtf.api.messages.find_by_recipient')
+def test_get_recipient_messages(mock_find_by_recipient):
+    expected = ['foobar']
+    messages.REPO['by_id'][TEST_DATA['id']] = expected[0]
+    mock_find_by_recipient.return_value = [
+        {'message': TEST_DATA['id'], 'status': 'unread'}
+    ]
+    actual = messages.get_recipient_messages()
+    assert expected == actual
+
+
+@patch('wtf.api.messages.find_by_recipient')
+def test_get_recipient_messages_status(mock_find_by_recipient):
+    expected = []
+    status = 'unread'
+    mock_find_by_recipient.return_value = [
+        {'message': TEST_DATA['id'], 'status': 'read'}
+    ]
+    actual = messages.get_recipient_messages(status=status)
+    assert expected == actual
 
 
 def test_find_message_by_id():
