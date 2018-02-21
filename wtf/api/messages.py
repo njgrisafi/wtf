@@ -35,7 +35,7 @@ def handle_create_request():
         body=body.get('body'),
         recipients=body.get('recipients')
     ))
-    return jsonify(message), 200
+    return jsonify({'message': message}), 200
 
 
 @BLUEPRINT.route('', methods=['GET'])
@@ -49,7 +49,6 @@ def handle_get_query_request():
     '''
     args = util.get_query_args()
     messages = find_by_recipient(args.get('recipient'))
-    messages = messages.copy()
     return jsonify({'messages': messages}), 200
 
 
@@ -119,7 +118,6 @@ def find_by_recipient(recipient_id):
     Raises a NotFoundError if the recipient could not be found.
     '''
     messages = REPO.get('by_recipient').get(recipient_id)
-    print(messages)
     if messages is None:
         raise NotFoundError('Recipient not found')
     return messages
