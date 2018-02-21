@@ -9,8 +9,8 @@ Weapons have the following properties:
   * grade: a value from 0.0 to 1.0 that measures the quality of the weapon
     > The higher this value, the "better" the weapon
 '''
-import random
 from uuid import uuid4
+import numpy as np
 from flask import Blueprint, jsonify
 from wtf.api import util, weaponrecipes
 from wtf.api.errors import NotFoundError, ValidationError
@@ -30,7 +30,7 @@ def handle_post_request():
         --header "Content-Type: application/json" \
         --write-out "\n" \
         --data '{
-            "recipe": "...",
+            "recipe": "..."
         }'
     '''
     body = util.get_json_body()
@@ -63,9 +63,19 @@ def create(**kwargs):
     }
 
 
-def generate_grade():
-    '''Generate a weapon grade.'''
-    return random.uniform(0.0, 1.0)
+def generate_grade(probabilities=None):
+    '''Generate a random weapon grade.'''
+    if probabilities is None:
+        probabilities = grade_probabilities()
+    choices = np.arange(0.0, 1.0, 0.1) + np.random.uniform(0.0, 0.1)
+    return np.random.choice(choices, p=probabilities)
+
+
+def grade_probabilities():
+    '''Get weapon grade probabilities.'''
+    dist = [pow(10, i) for i in range(10, 0, -1)]
+    total = sum(dist)
+    return [i / total for i in dist]
 
 
 def transform(weapon):
@@ -74,9 +84,9 @@ def transform(weapon):
     The following transformations will be performed:
       * name and description: defaulted to recipe values if None
       * grade: replaced with +0 to +9 form
-      * weight: derived from recipe and grade
-      * damage.min: derived from recipe and grade
-      * damage.max: derived from recipe and grade
+      * weight: derived from recipe and grade, rounded to 2 decimal places
+      * damage.min: derived from recipe and grade, rounded to 2 decimal places
+      * damage.max: derived from recipe and grade, rounded to 2 decimal places
     '''
     weapon = weapon.copy()
     recipe = weaponrecipes.find_by_id(weapon.get('recipe'))
@@ -86,15 +96,18 @@ def transform(weapon):
         weapon['description'] = recipe.get('description')
     grade = weapon.get('grade')
     weapon['grade'] = '+%s' % int(grade * 10)
-    weapon['weight'] = util.interval_grade_value(
+    weight = util.interval_grade_value(
         recipe.get('weight'),
         grade,
         correlation='-'
     )
+    weapon['weight'] = round(weight, 2)
     damage = recipe.get('damage')
+    damage_min = util.interval_grade_value(damage.get('min'), grade)
+    damage_max = util.interval_grade_value(damage.get('max'), grade)
     weapon['damage'] = {
-        'min': util.interval_grade_value(damage.get('min'), grade),
-        'max': util.interval_grade_value(damage.get('max'), grade)
+        'min': round(damage_min, 2),
+        'max': round(damage_max, 2)
     }
     return weapon
 
