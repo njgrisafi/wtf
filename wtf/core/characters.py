@@ -64,10 +64,7 @@ def allocate_ability_points(character, **kwargs):
 
 
 def save(character):
-    '''Persist a character.
-
-    If the character already exists, it will be updated; otherwise, it will be
-        created.
+    '''Create/update a character.
 
     Raises a ValidationError if the character is invalid.
     '''

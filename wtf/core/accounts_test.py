@@ -48,12 +48,6 @@ def test_create_account_defaults():
     assert expected == actual
 
 
-def test_transform_account():
-    expected = {'foo': 'bar'}
-    actual = accounts.transform({'foo': 'bar', 'password': 'foobar'})
-    assert expected == actual
-
-
 @patch('wtf.core.accounts.uuid4')
 @patch('wtf.core.accounts.validate')
 def test_save_account_insert(mock_validate, mock_uuid4):
@@ -183,4 +177,10 @@ def test_find_account_by_email_password_not_found():
             TEST_DATA['password']['plain']
         )
     actual = str(e.value)
+    assert expected == actual
+
+
+def test_transform_account():
+    expected = {'foo': 'bar'}
+    actual = accounts.transform({'foo': 'bar', 'password': 'foobar'})
     assert expected == actual
