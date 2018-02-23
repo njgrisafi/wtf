@@ -156,25 +156,25 @@ def test_get_character_by_id_not_found(test_client):
     response.assert_body({'errors': ['Character not found']})
 
 
-@patch('wtf.core.weaponrecipes.save')
-def test_create_weapon_recipe(mock_save, test_client):
-    mock_save.return_value = 'foobar'
+@patch('wtf.core.weapons.save_recipe')
+def test_create_weapon_recipe(mock_save_recipe, test_client):
+    mock_save_recipe.return_value = 'foobar'
     response = test_client.post('/weapon-recipes', body={})
     response.assert_status_code(201)
     response.assert_body({'recipe': 'foobar'})
 
 
-@patch('wtf.core.weaponrecipes.save')
-def test_create_weapon_recipe_invalid(mock_save, test_client):
-    mock_save.side_effect = ValidationError(errors=['foo', 'bar', 'baz'])
+@patch('wtf.core.weapons.save_recipe')
+def test_create_weapon_recipe_invalid(mock_save_recipe, test_client):
+    mock_save_recipe.side_effect = ValidationError(errors=['foo', 'bar', 'baz'])
     response = test_client.post('/weapon-recipes', body={})
     response.assert_status_code(400)
     response.assert_body({'errors': ['foo', 'bar', 'baz']})
 
 
-@patch('wtf.core.weaponrecipes.find_by_id')
-def test_get_weapon_recipe_by_id(mock_find_by_id, test_client):
-    mock_find_by_id.return_value = 'foobar'
+@patch('wtf.core.weapons.find_recipe_by_id')
+def test_get_weapon_recipe_by_id(mock_find_recipe_by_id, test_client):
+    mock_find_recipe_by_id.return_value = 'foobar'
     recipe_id = TEST_DATA['weapon_recipe']['id']
     response = test_client.get('/weapon-recipes/%s' % recipe_id)
     response.assert_status_code(200)

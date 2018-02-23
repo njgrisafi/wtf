@@ -5,7 +5,7 @@ API route handlers.
 '''
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import BadRequest
-from wtf.core import accounts, characters, weaponrecipes, weapons
+from wtf.core import accounts, characters, weapons
 from wtf.core.errors import NotFoundError, ValidationError
 
 
@@ -161,7 +161,7 @@ def create_weapon_recipe():
     damage = body.get('damage', {})
     damage_min = damage.get('min', {})
     damage_max = damage.get('max', {})
-    recipe = weaponrecipes.save(weaponrecipes.create(
+    recipe = weapons.save_recipe(weapons.create_recipe(
         type=body.get('type'),
         name=body.get('name'),
         description=body.get('description'),
@@ -190,7 +190,7 @@ def get_weapon_recipe_by_id(recipe_id):
         --url http://localhost:5000/api/weapon-recipes/<id> \
         --write-out "\n"
     '''
-    recipe = weaponrecipes.find_by_id(recipe_id)
+    recipe = weapons.find_recipe_by_id(recipe_id)
     return jsonify({'recipe': recipe}), 200
 
 
