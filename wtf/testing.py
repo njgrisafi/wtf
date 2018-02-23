@@ -9,12 +9,12 @@ from json import loads as json_loads, dumps as json_dumps
 def create_test_client(app):
     '''Create a test client from a Flask app'''
     app.testing = True
-    client = Client(app.test_client())
+    client = TestClient(app.test_client())
     app.app_context()
     return client
 
 
-class Client(object):
+class TestClient(object):
     '''A convenience wrapper for Flask test clients'''
 
     test_client = None
@@ -32,9 +32,9 @@ class Client(object):
         '''Set the default request headers'''
         self.default_headers = headers
 
-    def post(self, **kwargs):
+    def post(self, path='', **kwargs):
         '''Send a POST request'''
-        path = '%s%s' % (self.root_path, kwargs.get('path', ''))
+        path = '%s%s' % (self.root_path, path)
         headers = kwargs.get('headers', self.default_headers)
         body = kwargs.get('body')
         data = json_dumps(body) if body is not None else None
@@ -45,9 +45,9 @@ class Client(object):
         )
         return AssertableResponse(response)
 
-    def get(self, **kwargs):
+    def get(self, path='', **kwargs):
         '''Send a GET request'''
-        path = '%s%s' % (self.root_path, kwargs.get('path', ''))
+        path = '%s%s' % (self.root_path, path)
         headers = kwargs.get('headers', self.default_headers)
         response = self.test_client.get(
             path=path,

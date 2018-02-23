@@ -1,59 +1,26 @@
 # pylint: disable=missing-docstring,invalid-name,redefined-outer-name
 import pytest
 from mock import patch
-from wtf.api import characters
-from wtf.api.app import create_app
-from wtf.api.errors import NotFoundError, ValidationError
-from wtf.testing import create_test_client
+from wtf.core import characters
+from wtf.core.errors import NotFoundError, ValidationError
 
 
 TEST_DATA = {
     'id': '0a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d',
     'account': '1a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d',
-    'name': 'foobar'
+    'name': 'foobar',
+    'abilities': {
+        'unallocated': 5,
+        'strength': 5,
+        'endurance': 5,
+        'agility': 5,
+        'accuracy': 5
+    }
 }
 
 
 def setup_function():
     characters.REPO = {'by_id': {}, 'by_account': {}}
-
-
-@pytest.fixture
-def test_client():
-    client = create_test_client(create_app())
-    client.set_root_path('/api/characters')
-    client.set_default_headers({'Content-Type': 'application/json'})
-    return client
-
-
-@patch('wtf.api.characters.save')
-def test_handle_post_character_request(mock_save, test_client):
-    mock_save.return_value = 'foobar'
-    response = test_client.post(body={})
-    response.assert_status_code(201)
-    response.assert_body({'character': 'foobar'})
-
-
-@patch('wtf.api.characters.save')
-def test_handle_post_character_request_invalid(mock_save, test_client):
-    mock_save.side_effect = ValidationError(errors=['foo', 'bar', 'baz'])
-    response = test_client.post(body={})
-    response.assert_status_code(400)
-    response.assert_body({'errors': ['foo', 'bar', 'baz']})
-
-
-@patch('wtf.api.characters.find_by_id')
-def test_handle_get_character_by_id_request(mock_find_by_id, test_client):
-    mock_find_by_id.return_value = 'foobar'
-    response = test_client.get(path='/%s' % TEST_DATA['id'])
-    response.assert_status_code(200)
-    response.assert_body({'character': 'foobar'})
-
-
-def test_handle_get_character_by_id_request_not_found(test_client):
-    response = test_client.get(path='/%s' % TEST_DATA['id'])
-    response.assert_status_code(404)
-    response.assert_body({'errors': ['Character not found']})
 
 
 def test_create_character():
@@ -64,13 +31,7 @@ def test_create_character():
         'level': 12,
         'experience': 123,
         'health': 1234,
-        'abilities': {
-            'unallocated': 5,
-            'strength': 5,
-            'endurance': 5,
-            'agility': 5,
-            'accuracy': 5
-        }
+        'abilities': TEST_DATA['abilities']
     }
     actual = characters.create(
         account=TEST_DATA['account'],
@@ -78,13 +39,7 @@ def test_create_character():
         level=12,
         experience=123,
         health=1234,
-        abilities=dict(
-            unallocated=5,
-            strength=5,
-            endurance=5,
-            agility=5,
-            accuracy=5
-        )
+        abilities=TEST_DATA['abilities']
     )
     assert expected == actual
 
@@ -120,13 +75,13 @@ def test_allocate_character_ability_points():
         )
     }
     character = {
-        'abilities': dict(
-            unallocated=15,
-            strength=5,
-            endurance=5,
-            agility=5,
-            accuracy=5
-        )
+        'abilities': {
+            'unallocated': 15,
+            'strength': 5,
+            'endurance': 5,
+            'agility': 5,
+            'accuracy': 5
+        }
     }
     actual = characters.allocate_ability_points(
         character,
@@ -141,13 +96,13 @@ def test_allocate_character_ability_points():
 def test_allocate_character_ability_points_insufficient_points():
     expected = 'Insufficient ability points'
     character = {
-        'abilities': dict(
-            unallocated=3,
-            strength=5,
-            endurance=5,
-            agility=5,
-            accuracy=5
-        )
+        'abilities': {
+            'unallocated': 3,
+            'strength': 5,
+            'endurance': 5,
+            'agility': 5,
+            'accuracy': 5
+        }
     }
     with pytest.raises(ValidationError) as e:
         characters.allocate_ability_points(
@@ -161,8 +116,8 @@ def test_allocate_character_ability_points_insufficient_points():
     assert expected in actual
 
 
-@patch('wtf.api.characters.validate')
-@patch('wtf.api.characters.uuid4')
+@patch('wtf.core.characters.validate')
+@patch('wtf.core.characters.uuid4')
 def test_save_character_insert(mock_uuid4, mock_validate):
     expected = {'id': TEST_DATA['id'], 'account': TEST_DATA['account']}
     mock_uuid4.return_value = TEST_DATA['id']
@@ -173,7 +128,7 @@ def test_save_character_insert(mock_uuid4, mock_validate):
     assert expected in characters.REPO['by_account'][TEST_DATA['account']]
 
 
-@patch('wtf.api.characters.validate')
+@patch('wtf.core.characters.validate')
 def test_save_character_update(mock_validate):
     expected = {'id': TEST_DATA['id'], 'account': TEST_DATA['account']}
     mock_validate.return_value = None
@@ -185,7 +140,7 @@ def test_save_character_update(mock_validate):
     assert expected in characters.REPO['by_account'][TEST_DATA['account']]
 
 
-@patch('wtf.api.characters.validate')
+@patch('wtf.core.characters.validate')
 def test_save_character_invalid(mock_validate):
     mock_validate.side_effect = ValidationError()
     with pytest.raises(ValidationError):
@@ -214,7 +169,7 @@ def test_validate_character_missing_fields():
     assert set(expected).issubset(actual)
 
 
-@patch('wtf.api.characters.find_by_account')
+@patch('wtf.core.characters.find_by_account')
 def test_validate_character_duplicate_name(mock_find_by_account):
     expected = 'Duplicate character name: foo'
     mock_find_by_account.return_value = [{'name': 'foo'}]

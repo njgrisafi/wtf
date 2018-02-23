@@ -1,10 +1,8 @@
 # pylint: disable=missing-docstring,invalid-name,redefined-outer-name
 import pytest
 from mock import patch
-from wtf.api import accounts
-from wtf.api.app import create_app
-from wtf.api.errors import NotFoundError, ValidationError
-from wtf.testing import create_test_client
+from wtf.core import accounts
+from wtf.core.errors import NotFoundError, ValidationError
 
 
 TEST_DATA = {
@@ -24,46 +22,7 @@ def setup_function():
     accounts.REPO = {'by_id': {}, 'by_email': {}}
 
 
-@pytest.fixture
-def test_client():
-    client = create_test_client(create_app())
-    client.set_root_path('/api/accounts')
-    client.set_default_headers({'Content-Type': 'application/json'})
-    return client
-
-
-@patch('wtf.api.accounts.save')
-def test_handle_post_account_request(mock_save, test_client):
-    mock_save.return_value = 'foobar'
-    response = test_client.post(body={})
-    response.assert_status_code(201)
-    response.assert_body({'account': 'foobar'})
-
-
-@patch('wtf.api.accounts.save')
-def test_handle_post_account_request_invalid(mock_save, test_client):
-    mock_save.side_effect = ValidationError(errors=['foo', 'bar', 'baz'])
-    response = test_client.post(body={})
-    response.assert_status_code(400)
-    response.assert_body({'errors': ['foo', 'bar', 'baz']})
-
-
-@patch('wtf.api.accounts.find_by_id')
-def test_handle_get_account_by_id_request(mock_find_by_id, test_client):
-    mock_find_by_id.return_value = {'foo': 'bar', 'password': 'foobar'}
-    for _ in range(2):
-        response = test_client.get(path='/%s' % TEST_DATA['id'])
-        response.assert_status_code(200)
-        response.assert_body({'account': {'foo': 'bar'}})
-
-
-def test_handle_get_account_by_id_request_not_found(test_client):
-    response = test_client.get(path='/%s' % TEST_DATA['id'])
-    response.assert_status_code(404)
-    response.assert_body({'errors': ['Account not found']})
-
-
-@patch('wtf.api.accounts.util.salt_and_hash')
+@patch('wtf.core.accounts.util.salt_and_hash')
 def test_create_account(mock_salt_and_hash):
     expected = {
         'id': TEST_DATA['id'],
@@ -89,8 +48,14 @@ def test_create_account_defaults():
     assert expected == actual
 
 
-@patch('wtf.api.accounts.uuid4')
-@patch('wtf.api.accounts.validate')
+def test_transform_account():
+    expected = {'foo': 'bar'}
+    actual = accounts.transform({'foo': 'bar', 'password': 'foobar'})
+    assert expected == actual
+
+
+@patch('wtf.core.accounts.uuid4')
+@patch('wtf.core.accounts.validate')
 def test_save_account_insert(mock_validate, mock_uuid4):
     expected = {'id': TEST_DATA['id'], 'email': TEST_DATA['email']}
     mock_validate.return_value = None
@@ -101,7 +66,7 @@ def test_save_account_insert(mock_validate, mock_uuid4):
     assert expected == accounts.REPO['by_email'][TEST_DATA['email']]
 
 
-@patch('wtf.api.accounts.validate')
+@patch('wtf.core.accounts.validate')
 def test_save_account_update(mock_validate):
     expected = {'id': TEST_DATA['id'], 'email': TEST_DATA['email']}
     mock_validate.return_value = None
@@ -111,7 +76,7 @@ def test_save_account_update(mock_validate):
     assert expected == accounts.REPO['by_email'][TEST_DATA['email']]
 
 
-@patch('wtf.api.accounts.validate')
+@patch('wtf.core.accounts.validate')
 def test_save_account_invalid(mock_validate):
     mock_validate.side_effect = ValidationError()
     with pytest.raises(ValidationError):
@@ -120,7 +85,7 @@ def test_save_account_invalid(mock_validate):
     assert not accounts.REPO['by_email'].values()
 
 
-@patch('wtf.api.accounts.find_by_email')
+@patch('wtf.core.accounts.find_by_email')
 def test_validate_account(mock_find_by_email):
     mock_find_by_email.side_effect = NotFoundError('foo bar baz')
     accounts.validate({
@@ -142,7 +107,7 @@ def test_validate_account_missing_fields():
     assert set(expected).issubset(actual)
 
 
-@patch('wtf.api.accounts.find_by_email')
+@patch('wtf.core.accounts.find_by_email')
 def test_validate_account_email_already_registered(mock_find_by_email):
     expected = 'Email address already registered'
     mock_find_by_email.return_value = 'foobar'
@@ -182,7 +147,7 @@ def test_find_account_by_email_not_found():
     assert expected == actual
 
 
-@patch('wtf.api.accounts.find_by_email')
+@patch('wtf.core.accounts.find_by_email')
 def test_find_account_by_email_password(
         mock_find_by_email
     ):
@@ -195,7 +160,7 @@ def test_find_account_by_email_password(
     assert expected == actual
 
 
-@patch('wtf.api.accounts.find_by_email')
+@patch('wtf.core.accounts.find_by_email')
 def test_find_account_by_email_password_incorrect_password(
         mock_find_by_email
     ):

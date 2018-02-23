@@ -2,10 +2,8 @@
 import numpy as np
 import pytest
 from mock import Mock, patch
-from wtf.api import weapons, weaponrecipes_test
-from wtf.api.app import create_app
-from wtf.api.errors import NotFoundError, ValidationError
-from wtf.testing import create_test_client
+from wtf.core import weapons, weaponrecipes_test
+from wtf.core.errors import NotFoundError, ValidationError
 
 
 TEST_DATA = {
@@ -41,52 +39,6 @@ def setup_function():
     weapons.REPO = {'by_id': {}}
 
 
-@pytest.fixture
-def test_client():
-    client = create_test_client(create_app())
-    client.set_root_path('/api/weapons')
-    client.set_default_headers({'Content-Type': 'application/json'})
-    return client
-
-
-@patch('wtf.api.weapons.transform')
-@patch('wtf.api.weapons.save')
-def test_handle_post_weapon_request(mock_save, mock_transform, test_client):
-    mock_save.return_value = 'foobar'
-    mock_transform.return_value = 'foobar-transformd'
-    response = test_client.post(body={})
-    response.assert_status_code(201)
-    response.assert_body({'weapon': 'foobar-transformd'})
-
-
-@patch('wtf.api.weapons.save')
-def test_handle_post_weapon_request_invalid(mock_save, test_client):
-    mock_save.side_effect = ValidationError(errors=['foo', 'bar', 'baz'])
-    response = test_client.post(body={})
-    response.assert_status_code(400)
-    response.assert_body({'errors': ['foo', 'bar', 'baz']})
-
-
-@patch('wtf.api.weapons.transform')
-@patch('wtf.api.weapons.find_by_id')
-def test_handle_get_weapon_by_id_request(
-        mock_find_by_id,
-        mock_transform,
-        test_client
-    ):
-    mock_find_by_id.return_value = 'foobar'
-    mock_transform.return_value = 'foobar-transformd'
-    response = test_client.get(path='/%s' % TEST_DATA['id'])
-    response.assert_status_code(200)
-    response.assert_body({'weapon': 'foobar-transformd'})
-
-
-def test_handle_get_weapon_by_id_request_not_found(test_client):
-    response = test_client.get(path='/%s' % TEST_DATA['id'])
-    response.assert_status_code(404)
-    response.assert_body({'errors': ['Weapon not found']})
-
-
 def test_create_weapon():
     expected = {
         'recipe': TEST_DATA['recipe']['id'],
@@ -103,7 +55,7 @@ def test_create_weapon():
     assert expected == actual
 
 
-@patch('wtf.api.weapons.generate_grade')
+@patch('wtf.core.weapons.generate_grade')
 def test_create_weapon_defaults(mock_generate_grade):
     mock_generate_grade.return_value = TEST_DATA['grade']
     expected = {
@@ -120,7 +72,7 @@ def test_create_weapon_defaults(mock_generate_grade):
     pytest.param(0.042, TEST_DATA['grade_probabilities']['custom']),
     pytest.param(0.023, None)
 ])
-@patch('wtf.api.weapons.np.random')
+@patch('wtf.core.weapons.np.random')
 def test_generate_weapon_grade_(mock_np_random, random_value, probabilities):
     expected = TEST_DATA['grade']
     mock_np_random.uniform.return_value = random_value
@@ -144,16 +96,18 @@ def test_weapon_grade_probabilities_default():
     pytest.param(TEST_DATA['name'], TEST_DATA['description']),
     pytest.param(None, None)
 ])
-@patch('wtf.api.weapons.weaponrecipes')
+@patch('wtf.core.weapons.weaponrecipes')
 def test_transform_weapon(mock_weaponrecipes, name, description):
     recipe = TEST_DATA.get('recipe')
     mock_weaponrecipes.find_by_id = Mock(return_value=recipe)
     expected = {
+        'recipe': recipe['id'],
+        'type': recipe['type'],
         'name': recipe['name'] if not name else name,
         'description': (
             recipe['description'] if not description else description
         ),
-        'recipe': recipe['id'],
+        'handedness': recipe['handedness'],
         'grade': '+%s' % int(TEST_DATA['grade'] * 10),
         'weight': TEST_DATA['weight'],
         'damage': {
@@ -172,8 +126,8 @@ def test_transform_weapon(mock_weaponrecipes, name, description):
     assert expected == actual
 
 
-@patch('wtf.api.weapons.validate')
-@patch('wtf.api.weapons.uuid4')
+@patch('wtf.core.weapons.validate')
+@patch('wtf.core.weapons.uuid4')
 def test_save_weapon_insert(mock_uuid4, mock_validate):
     expected = {'id': TEST_DATA['id']}
     mock_uuid4.return_value = TEST_DATA['id']
@@ -183,7 +137,7 @@ def test_save_weapon_insert(mock_uuid4, mock_validate):
     assert expected == weapons.REPO['by_id'][TEST_DATA['id']]
 
 
-@patch('wtf.api.weapons.validate')
+@patch('wtf.core.weapons.validate')
 def test_save_weapon_update(mock_validate):
     expected = {'id': TEST_DATA['id']}
     mock_validate.return_value = None
@@ -192,7 +146,7 @@ def test_save_weapon_update(mock_validate):
     assert expected == weapons.REPO['by_id'][TEST_DATA['id']]
 
 
-@patch('wtf.api.weapons.validate')
+@patch('wtf.core.weapons.validate')
 def test_save_weapon_invalid(mock_validate):
     mock_validate.side_effect = ValidationError()
     with pytest.raises(ValidationError):
@@ -200,7 +154,7 @@ def test_save_weapon_invalid(mock_validate):
     assert not weapons.REPO['by_id'].values()
 
 
-@patch('wtf.api.weapons.weaponrecipes')
+@patch('wtf.core.weapons.weaponrecipes')
 def test_validate_weapon(mock_weaponrecipes):
     mock_weaponrecipes.find_by_id = Mock(return_value='foobar')
     weapons.validate({
@@ -221,7 +175,7 @@ def test_validate_weapon_missing_fields():
     assert set(expected).issubset(e.value.errors)
 
 
-@patch('wtf.api.weapons.weaponrecipes')
+@patch('wtf.core.weapons.weaponrecipes')
 def test_validate_weapon_recipe_not_found(mock_weaponrecipes):
     expected = 'Weapon recipe not found'
     mock_weaponrecipes.find_by_id = Mock(
