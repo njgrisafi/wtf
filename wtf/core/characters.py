@@ -1,5 +1,5 @@
 '''
-wtf.api.characters
+wtf.core.characters
 
 Characters have the following properties:
   * id: the character's UUID (Universally Unique Identifier)
@@ -16,48 +16,10 @@ Characters have the following properties:
     * accuracy: increases normal and critical attack chance
 '''
 from uuid import uuid4
-from flask import Blueprint, jsonify
-from wtf.api import util
-from wtf.api.errors import NotFoundError, ValidationError
+from wtf.core.errors import NotFoundError, ValidationError
 
 
-BLUEPRINT = Blueprint('characters', __name__)
 REPO = {'by_id': {}, 'by_account': {}}
-
-
-@BLUEPRINT.route('', methods=['POST'])
-def handle_post_request():
-    '''Handle character creation requests.
-
-    $ curl \
-        --request POST \
-        --url http://localhost:5000/api/characters \
-        --header "Content-Type: application/json" \
-        --write-out "\n" \
-        --data '{
-            "account": "...",
-            "name": "..."
-        }'
-    '''
-    body = util.get_json_body()
-    character = save(create(
-        account=body.get('account'),
-        name=body.get('name')
-    ))
-    return jsonify({'character': character}), 201
-
-
-@BLUEPRINT.route('/<character_id>', methods=['GET'])
-def handle_get_by_id_request(character_id):
-    '''Handle character retrieval by ID requests.
-
-    $ curl \
-        --request GET \
-        --url http://localhost:5000/api/characters/<id> \
-        --write-out "\n"
-    '''
-    character = find_by_id(character_id)
-    return jsonify({'character': character}), 200
 
 
 def create(**kwargs):
