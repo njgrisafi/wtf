@@ -14,5 +14,8 @@ htmlcov
 # vagrant stuff
 .vagrant/
 
+# logs
+*.log
+
 # junk
 .DS_Store

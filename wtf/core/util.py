@@ -30,10 +30,10 @@ def interval_intersect(interval_1, interval_2):
             {'center': 23, 'radius': 42}
         )
     '''
-    interval_1_min = interval_1['center'] - interval_1['radius']
-    interval_1_diameter = interval_1['radius'] * 2
-    interval_2_min = interval_2['center'] - interval_2['radius']
-    interval_2_diameter = interval_2['radius'] * 2
+    interval_1_min = interval_1.get('center', 0) - interval_1.get('radius', 0)
+    interval_1_diameter = interval_1.get('radius', 0) * 2
+    interval_2_min = interval_2.get('center', 0) - interval_2.get('radius', 0)
+    interval_2_diameter = interval_2.get('radius', 0) * 2
     min_diff = interval_2_min - interval_1_min
     diameter_diff = interval_1_diameter - interval_2_diameter
     intersect_x = min_diff / diameter_diff if diameter_diff != 0 else None
@@ -53,6 +53,6 @@ def interval_grade_value(interval, grade):
 
     If the value is negatively correlated with grade, pass `grade=(1 - grade)`
     '''
-    center = interval.get('center')
-    radius = interval.get('radius')
+    center = interval.get('center', 0)
+    radius = interval.get('radius', 0)
     return (center - radius) + (2 * radius * grade)

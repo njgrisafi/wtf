@@ -5,7 +5,7 @@ API route handlers.
 '''
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import BadRequest
-from wtf.core import accounts, characters, weapons
+from wtf.core import accounts, armor, characters, weapons
 from wtf.core.errors import NotFoundError, ValidationError
 
 
@@ -136,14 +136,14 @@ def create_weapon_recipe():
         --header "Content-Type: application/json" \
         --write-out "\n" \
         --data '{
-            "type": "...",
             "name": "...",
             "description": "...",
-            "handedness": ...,
             "weight": {
                 "center": ...,
                 "radius": ...
             },
+            "type": "...",
+            "handedness": ...,
             "damage": {
                 "min": {
                     "center": ...,
@@ -162,11 +162,11 @@ def create_weapon_recipe():
     damage_min = damage.get('min', {})
     damage_max = damage.get('max', {})
     recipe = weapons.save_recipe(weapons.create_recipe(
-        type=body.get('type'),
         name=body.get('name'),
         description=body.get('description'),
-        handedness=body.get('handedness'),
         weight=dict(center=weight.get('center'), radius=weight.get('radius')),
+        type=body.get('type'),
+        handedness=body.get('handedness'),
         damage=dict(
             min=dict(
                 center=damage_min.get('center'),
@@ -225,3 +225,102 @@ def get_weapon_by_id(weapon_id):
     '''
     weapon = weapons.find_by_id(weapon_id)
     return jsonify({'weapon': weapons.transform(weapon)}), 200
+
+
+@BLUEPRINT.route('/armor-recipes', methods=['POST'])
+def create_armor_recipe():
+    '''Create an armor recipe.
+
+    $ curl \
+        --request POST \
+        --url http://localhost:5000/api/armor-recipes \
+        --header "Content-Type: application/json" \
+        --write-out "\n" \
+        --data '{
+            "name": "...",
+            "description": "...",
+            "weight": {
+                "center": ...,
+                "radius": ...
+            },
+            "location": ...,
+            "defense": {
+                "min": {
+                    "center": ...,
+                    "radius": ...
+                },
+                "max": {
+                    "center": ...,
+                    "radius": ...
+                }
+            }
+        }'
+    '''
+    body = get_json_body()
+    weight = body.get('weight', {})
+    defense = body.get('defense', {})
+    defense_min = defense.get('min', {})
+    defense_max = defense.get('max', {})
+    recipe = armor.save_recipe(armor.create_recipe(
+        name=body.get('name'),
+        description=body.get('description'),
+        weight=dict(center=weight.get('center'), radius=weight.get('radius')),
+        location=body.get('location'),
+        defense=dict(
+            min=dict(
+                center=defense_min.get('center'),
+                radius=defense_min.get('radius')
+            ),
+            max=dict(
+                center=defense_max.get('center'),
+                radius=defense_max.get('radius')
+            )
+        )
+    ))
+    return jsonify({'recipe': recipe}), 201
+
+
+@BLUEPRINT.route('/armor-recipes/<recipe_id>', methods=['GET'])
+def get_armor_recipe_by_id(recipe_id):
+    '''Get an armor recipe by its ID.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/armor-recipes/<id> \
+        --write-out "\n"
+    '''
+    recipe = armor.find_recipe_by_id(recipe_id)
+    return jsonify({'recipe': recipe}), 200
+
+
+@BLUEPRINT.route('/armor', methods=['POST'])
+def create_armor():
+    '''Create an armor.
+
+    $ curl \
+        --request POST \
+        --url http://localhost:5000/api/armor \
+        --header "Content-Type: application/json" \
+        --write-out "\n" \
+        --data '{
+            "recipe": "..."
+        }'
+    '''
+    body = get_json_body()
+    new_armor = armor.save(armor.create(
+        recipe=body.get('recipe')
+    ))
+    return jsonify({'armor': armor.transform(new_armor)}), 201
+
+
+@BLUEPRINT.route('/armor/<armor_id>', methods=['GET'])
+def get_armor_by_id(armor_id):
+    '''Get an armor by its ID.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/armor/<id> \
+        --write-out "\n"
+    '''
+    existing_armor = armor.find_by_id(armor_id)
+    return jsonify({'armor': armor.transform(existing_armor)}), 200
