@@ -8,12 +8,13 @@ from wtf.core.errors import NotFoundError, ValidationError
 from wtf.testing import create_test_client
 
 
-
 TEST_DATA = {
-    'account': {'id': '0a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'},
-    'character': {'id': '0a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'},
+    'account': {'id': '270e6e8a-ea43-4859-98cc-09d5dd381679'},
+    'character': {'id': '7d700f0e-c25d-4bba-a9de-d5e79d0eeebe'},
     'weapon_recipe': {'id': '2513cb35-9a34-4612-8541-4916035979f3'},
-    'weapon': {'id': 'ebe3f790-a7da-447b-86b3-82efd7e52ff4'}
+    'weapon': {'id': 'ebe3f790-a7da-447b-86b3-82efd7e52ff4'},
+    'armor_recipe': {'id': '31c87b87-6f6b-49d5-a095-e9f71abe7def'},
+    'armor': {'id': '29b2f4d9-67f6-4061-85dd-cd5d6ec02bb8'}
 }
 
 
@@ -57,32 +58,29 @@ def test_get_json_body_invalid(mock_request):
 
 @patch('wtf.api.routes.jsonify')
 def test_handle_invalid_request_error(mock_jsonify):
-    mock_jsonify.return_value = 'foobar'
+    mock_jsonify.side_effect = lambda b: b
     error = ValidationError(errors=['foo', 'bar', 'baz'])
     response, status_code = routes.handle_invalid_request(error)
-    assert response == 'foobar'
+    assert response == {'errors': ['foo', 'bar', 'baz']}
     assert status_code == 400
-    mock_jsonify.assert_called_with({'errors': ['foo', 'bar', 'baz']})
 
 
 @patch('wtf.api.routes.jsonify')
 def test_handle_not_found_error(mock_jsonify):
-    mock_jsonify.return_value = 'foobar'
+    mock_jsonify.side_effect = lambda b: b
     error = NotFoundError('Foobar not found')
     response, status_code = routes.handle_not_found(error)
-    assert response == 'foobar'
+    assert response == {'errors': ['Foobar not found']}
     assert status_code == 404
-    mock_jsonify.assert_called_with({'errors': ['Foobar not found']})
 
 
 @patch('wtf.api.routes.jsonify')
 def test_handle_misc_error(mock_jsonify):
-    mock_jsonify.return_value = 'foobar'
+    mock_jsonify.side_effect = lambda b: b
     error = Exception('foo bar baz')
     response, status_code = routes.handle_error(error)
-    assert response == 'foobar'
+    assert response == {'errors': ['Internal Server Error']}
     assert status_code == 500
-    mock_jsonify.assert_called_with({'errors': ['Internal Server Error']})
 
 
 def test_get_health(test_client):
@@ -143,15 +141,13 @@ def test_create_character_invalid(mock_save, test_client):
 @patch('wtf.core.characters.find_by_id')
 def test_get_character_by_id(mock_find_by_id, test_client):
     mock_find_by_id.return_value = 'foobar'
-    character_id = TEST_DATA['character']['id']
-    response = test_client.get('/characters/%s' % character_id)
+    response = test_client.get('/characters/%s' % TEST_DATA['character']['id'])
     response.assert_status_code(200)
     response.assert_body({'character': 'foobar'})
 
 
 def test_get_character_by_id_not_found(test_client):
-    character_id = TEST_DATA['character']['id']
-    response = test_client.get('/characters/%s' % character_id)
+    response = test_client.get('/characters/%s' % TEST_DATA['character']['id'])
     response.assert_status_code(404)
     response.assert_body({'errors': ['Character not found']})
 
@@ -211,14 +207,78 @@ def test_create_weapon_invalid(mock_save, test_client):
 def test_get_weapon_by_id(mock_find_by_id, mock_transform, test_client):
     mock_find_by_id.return_value = 'foobar'
     mock_transform.return_value = 'foobar-transformed'
-    weapon_id = TEST_DATA['weapon']['id']
-    response = test_client.get('/weapons/%s' % weapon_id)
+    response = test_client.get('/weapons/%s' % TEST_DATA['weapon']['id'])
     response.assert_status_code(200)
     response.assert_body({'weapon': 'foobar-transformed'})
 
 
 def test_get_weapon_by_id_not_found(test_client):
-    weapon_id = TEST_DATA['weapon']['id']
-    response = test_client.get('/weapons/%s' % weapon_id)
+    response = test_client.get('/weapons/%s' % TEST_DATA['weapon']['id'])
     response.assert_status_code(404)
     response.assert_body({'errors': ['Weapon not found']})
+
+
+@patch('wtf.core.armor.save_recipe')
+def test_create_armor_recipe(mock_save_recipe, test_client):
+    mock_save_recipe.return_value = 'foobar'
+    response = test_client.post('/armor-recipes', body={})
+    response.assert_status_code(201)
+    response.assert_body({'recipe': 'foobar'})
+
+
+@patch('wtf.core.armor.save_recipe')
+def test_create_armor_recipe_invalid(mock_save_recipe, test_client):
+    mock_save_recipe.side_effect = ValidationError(errors=['foo', 'bar', 'baz'])
+    response = test_client.post('/armor-recipes', body={})
+    response.assert_status_code(400)
+    response.assert_body({'errors': ['foo', 'bar', 'baz']})
+
+
+@patch('wtf.core.armor.find_recipe_by_id')
+def test_get_armor_recipe_by_id(mock_find_recipe_by_id, test_client):
+    mock_find_recipe_by_id.return_value = 'foobar'
+    recipe_id = TEST_DATA['armor_recipe']['id']
+    response = test_client.get('/armor-recipes/%s' % recipe_id)
+    response.assert_status_code(200)
+    response.assert_body({'recipe': 'foobar'})
+
+
+def test_get_armor_recipe_by_id_not_found(test_client):
+    recipe_id = TEST_DATA['armor_recipe']['id']
+    response = test_client.get('/armor-recipes/%s' % recipe_id)
+    response.assert_status_code(404)
+    response.assert_body({'errors': ['Armor recipe not found']})
+
+
+@patch('wtf.core.armor.transform')
+@patch('wtf.core.armor.save')
+def test_create_armor(mock_save, mock_transform, test_client):
+    mock_save.return_value = 'foobar'
+    mock_transform.return_value = 'foobar-transformed'
+    response = test_client.post('/armor', body={})
+    response.assert_status_code(201)
+    response.assert_body({'armor': 'foobar-transformed'})
+
+
+@patch('wtf.core.armor.save')
+def test_create_armor_invalid(mock_save, test_client):
+    mock_save.side_effect = ValidationError(errors=['foo', 'bar', 'baz'])
+    response = test_client.post('/armor', body={})
+    response.assert_status_code(400)
+    response.assert_body({'errors': ['foo', 'bar', 'baz']})
+
+
+@patch('wtf.core.armor.transform')
+@patch('wtf.core.armor.find_by_id')
+def test_get_armor_by_id(mock_find_by_id, mock_transform, test_client):
+    mock_find_by_id.return_value = 'foobar'
+    mock_transform.return_value = 'foobar-transformed'
+    response = test_client.get('/armor/%s' % TEST_DATA['armor']['id'])
+    response.assert_status_code(200)
+    response.assert_body({'armor': 'foobar-transformed'})
+
+
+def test_get_armor_by_id_not_found(test_client):
+    response = test_client.get('/armor/%s' % TEST_DATA['armor']['id'])
+    response.assert_status_code(404)
+    response.assert_body({'errors': ['Armor not found']})

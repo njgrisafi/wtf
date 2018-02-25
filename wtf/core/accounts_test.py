@@ -1,4 +1,6 @@
-# pylint: disable=missing-docstring,invalid-name,redefined-outer-name
+# pylint: disable=missing-docstring
+# pylint: disable=invalid-name
+# pylint: disable=redefined-outer-name
 import pytest
 from mock import patch
 from wtf.core import accounts

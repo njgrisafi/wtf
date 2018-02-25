@@ -1,4 +1,6 @@
-# pylint: disable=missing-docstring,invalid-name
+# pylint: disable=missing-docstring
+# pylint: disable=invalid-name
+# pylint: disable=redefined-outer-name
 from wtf.core import util
 
 
