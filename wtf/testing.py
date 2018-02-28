@@ -47,8 +47,8 @@ class TestClient(object):
 
     def get(self, path='', **kwargs):
         '''Send a GET request'''
+        path = '%s%s' % (self.root_path, path)
         query_string = kwargs.get('query_string', {})
-        path = '%s%s' % (self.root_path, kwargs.get('path', ''))
         headers = kwargs.get('headers', self.default_headers)
         response = self.test_client.get(
             path=path,

@@ -5,7 +5,7 @@ API route handlers.
 '''
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import BadRequest
-from wtf.core import accounts, armor, characters, weapons
+from wtf.core import accounts, armor, characters, weapons, messages
 from wtf.core.errors import NotFoundError, ValidationError
 
 
@@ -23,6 +23,11 @@ def get_json_body():
         except BadRequest:
             raise ValidationError('Unable to parse JSON request body')
     return body
+
+
+def get_query_args():
+    '''Get the request query args.'''
+    return request.args
 
 
 @BLUEPRINT.errorhandler(ValidationError)
@@ -324,3 +329,82 @@ def get_armor_by_id(armor_id):
     '''
     existing_armor = armor.find_by_id(armor_id)
     return jsonify({'armor': armor.transform(existing_armor)}), 200
+
+
+@BLUEPRINT.route('/messages', methods=['GET'])
+def get_messages_query_request():
+    '''Handle message retrieval by recipient id.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/messages?recipient=<recipient_id>?status=<status> \
+        --write-out "\n"
+    '''
+    args = get_query_args()
+    status = args.get('status')
+    recipient = args.get('recipient')
+    recipient_messages = messages.get_recipient_messages(recipient=recipient, status=status)
+    return jsonify({'messages': recipient_messages}), 200
+
+
+@BLUEPRINT.route('/messages', methods=['POST'])
+def create_message_request():
+    '''Handle message creation requests.
+
+    $ curl \
+        --request POST \
+        --url http://localhost:5000/api/messages \
+        --header "Content-Type: application/json" \
+        --write-out "\n" \
+        --data '{
+            "subject": "...",
+            "body": "...",
+            "recipients": ["..."],
+        }'
+    '''
+    body = get_json_body()
+    message = messages.save(messages.create(
+        subject=body.get('subject'),
+        body=body.get('body'),
+        recipients=body.get('recipients')
+    ))
+    return jsonify({'message': message}), 200
+
+
+@BLUEPRINT.route('/messages/<message_id>/replies', methods=['POST'])
+def create_message_reply(message_id):
+    '''Handle reply for message by message id.
+
+    $ curl \
+        --request POST \
+        --url http://localhost:5000/api/messages/<message_id>/replies \
+        --header "Content-Type: application/json" \
+        --write-out "\n" \
+        --data '{
+            "subject": "...",
+            "body": "...",
+            "recipients": ["..."],
+        }'
+    '''
+    messages.find_by_id(message_id)
+    body = get_json_body()
+    message = messages.save(messages.create(
+        subject=body.get('subject'),
+        body=body.get('body'),
+        recipients=body.get('recipients'),
+        parent=message_id
+    ))
+    return jsonify({'message': message}), 200
+
+
+@BLUEPRINT.route('/messages/<message_id>', methods=['GET'])
+def get_message_by_id(message_id):
+    '''Handle message retrieval by ID requests.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/messages/<message_id> \
+        --write-out "\n"
+    '''
+    message = messages.find_by_id(message_id)
+    return jsonify({'message': message}), 200

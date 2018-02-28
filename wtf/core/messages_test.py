@@ -1,10 +1,10 @@
-# pylint: disable=missing-docstring,invalid-name,redefined-outer-name
+# pylint: disable=missing-docstring
+# pylint: disable=invalid-name
+# pylint: disable=redefined-outer-name
 import pytest
 from mock import patch
-from wtf.api import messages
-from wtf.api.app import create_app
-from wtf.api.errors import NotFoundError, ValidationError
-from wtf.testing import create_test_client
+from wtf.core import messages
+from wtf.core.errors import NotFoundError, ValidationError
 
 TEST_DATA = {
     'id': '0a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d',
@@ -17,73 +17,6 @@ TEST_DATA = {
 
 def setup_function():
     messages.REPO = {'by_id': {}, 'by_recipient': {}}
-
-
-@pytest.fixture
-def test_client():
-    client = create_test_client(create_app())
-    client.set_root_path('/api/messages')
-    client.set_default_headers({'Content-Type': 'application/json'})
-    return client
-
-
-@patch('wtf.api.messages.save')
-def test_handle_create_message_request(
-        mock_save,
-        test_client
-    ):
-    expected = 'foobar'
-    mock_save.return_value = expected
-    response = test_client.post(
-        body={'body': TEST_DATA['body'], 'subject': TEST_DATA['subject'], 'recipients': TEST_DATA['recipients']}
-    )
-    response.assert_status_code(200)
-    response.assert_body({'message': 'foobar'})
-
-
-@patch('wtf.api.messages.save')
-@patch('wtf.api.messages.find_by_id')
-def test_handle_create_message_reply_request(
-        mock_save,
-        mock_find_by_id,
-        test_client
-    ):
-    expected = 'foobar'
-    mock_save.return_value = expected
-    mock_find_by_id.return_value = expected
-    response = test_client.post(
-        path='/%s/replies' % TEST_DATA['id'],
-        body={'body': TEST_DATA['body'], 'subject': TEST_DATA['subject'], 'recipients': TEST_DATA['recipients']}
-    )
-    response.assert_status_code(200)
-    response.assert_body({'message': 'foobar'})
-
-
-@patch('wtf.api.messages.find_by_id')
-def test_handle_get_by_id_request(
-        mock_find_by_id,
-        test_client
-    ):
-    expected = {'message': TEST_DATA}
-    mock_find_by_id.return_value = TEST_DATA
-    for _ in range(2):
-        response = test_client.get(path='/%s' % TEST_DATA['id'])
-        response.assert_status_code(200)
-        response.assert_body(expected)
-
-
-@patch('wtf.api.messages.get_recipient_messages')
-def test_handle_get_message_query_request(
-        mock_get_recipient_messages,
-        test_client
-    ):
-    expected = 'foobar'
-    mock_get_recipient_messages.return_value = expected
-    response = test_client.get(
-        query_string={'recipient': TEST_DATA['recipients'][0]}
-    )
-    response.assert_status_code(200)
-    response.assert_body({'messages': 'foobar'})
 
 
 def test_create_message_defaults():
@@ -100,8 +33,8 @@ def test_create_message_defaults():
     assert expected == actual
 
 
-@patch('wtf.api.messages.uuid4')
-@patch('wtf.api.messages.validate')
+@patch('wtf.core.messages.uuid4')
+@patch('wtf.core.messages.validate')
 def test_save_message_insert(mock_validate, mock_uuid4):
     expected = {
         'id': TEST_DATA['id'],
@@ -137,7 +70,7 @@ def test_save_message_insert(mock_validate, mock_uuid4):
     assert [expected['copies'][1]] == messages.REPO['by_recipient']['bar']
 
 
-@patch('wtf.api.messages.validate')
+@patch('wtf.core.messages.validate')
 def test_save_message_invalid(mock_validate):
     mock_validate.side_effect = ValidationError()
     with pytest.raises(ValidationError):
@@ -168,7 +101,7 @@ def test_validate_message_missing_fields():
     actual = e.value.errors
     assert set(expected).issubset(actual)
 
-@patch('wtf.api.messages.find_by_recipient')
+@patch('wtf.core.messages.find_by_recipient')
 def test_get_recipient_messages(mock_find_by_recipient):
     expected = ['foobar']
     messages.REPO['by_id'][TEST_DATA['id']] = expected[0]
@@ -179,7 +112,7 @@ def test_get_recipient_messages(mock_find_by_recipient):
     assert expected == actual
 
 
-@patch('wtf.api.messages.find_by_recipient')
+@patch('wtf.core.messages.find_by_recipient')
 def test_get_recipient_messages_status(mock_find_by_recipient):
     expected = []
     status = 'unread'

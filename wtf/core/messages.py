@@ -1,97 +1,13 @@
 '''
-wtf.api.messages
+wtf.core.messages
 
 Routes and functions for manipulating messages.
 '''
 from datetime import datetime
 from uuid import uuid4
-from flask import Blueprint, jsonify, request
-from wtf.api import util
-from wtf.api.errors import NotFoundError, ValidationError
+from wtf.core.errors import NotFoundError, ValidationError
 
-
-BLUEPRINT = Blueprint('messages', __name__)
 REPO = {'by_id': {}, 'by_recipient': {}}
-
-
-@BLUEPRINT.route('', methods=['POST'])
-def handle_create_request():
-    '''Handle message creation requests.
-
-    $ curl \
-        --request POST \
-        --url http://localhost:5000/api/messages \
-        --header "Content-Type: application/json" \
-        --write-out "\n" \
-        --data '{
-            "subject": "...",
-            "body": "...",
-            "recipients": ["..."],
-        }'
-    '''
-    body = util.get_json_body()
-    message = save(create(
-        subject=body.get('subject'),
-        body=body.get('body'),
-        recipients=body.get('recipients')
-    ))
-    return jsonify({'message': message}), 200
-
-
-@BLUEPRINT.route('/<message_id>/replies', methods=['POST'])
-def handle_create_reply(message_id):
-    '''Handle reply for message by message id.
-
-    $ curl \
-        --request POST \
-        --url http://localhost:5000/api/messages/<message_id>/replies \
-        --header "Content-Type: application/json" \
-        --write-out "\n" \
-        --data '{
-            "subject": "...",
-            "body": "...",
-            "recipients": ["..."],
-        }'
-    '''
-    find_by_id(message_id)
-    body = util.get_json_body()
-    message = save(create(
-        subject=body.get('subject'),
-        body=body.get('body'),
-        recipients=body.get('recipients'),
-        parent=message_id
-    ))
-    return jsonify({'message': message}), 200
-
-
-@BLUEPRINT.route('', methods=['GET'])
-def handle_get_messages_query_request():
-    '''Handle message retrieval by recipient id.
-
-    $ curl \
-        --request GET \
-        --url http://localhost:5000/api/messages?recipient=<recipient_id>?status=<status> \
-        --write-out "\n"
-    '''
-    args = util.get_query_args()
-    status = args.get('status')
-    recipient = args.get('recipient')
-    messages = get_recipient_messages(recipient=recipient, status=status)
-    return jsonify({'messages': messages}), 200
-
-
-@BLUEPRINT.route('/<message_id>', methods=['GET'])
-def handle_get_by_id_request(message_id):
-    '''Handle message retrieval by ID requests.
-
-    $ curl \
-        --request GET \
-        --url http://localhost:5000/api/messages/<message_id> \
-        --write-out "\n"
-    '''
-    message = find_by_id(message_id)
-    message = message.copy()
-    return jsonify({'message': message}), 200
 
 
 def save(message):
@@ -130,8 +46,10 @@ def validate(message):
 
 
 def get_recipient_messages(**kwargs):
+    print("hi")
     recipient_id = kwargs.get('recipient')
     status = kwargs.get('status')
+    print(recipient_id)
     message_copies = find_by_recipient(recipient_id)
     if status:
         message_copies = list(filter(lambda m: m['status'] == str(status), message_copies))

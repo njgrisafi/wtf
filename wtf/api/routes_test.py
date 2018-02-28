@@ -14,7 +14,8 @@ TEST_DATA = {
     'weapon_recipe': {'id': '2513cb35-9a34-4612-8541-4916035979f3'},
     'weapon': {'id': 'ebe3f790-a7da-447b-86b3-82efd7e52ff4'},
     'armor_recipe': {'id': '31c87b87-6f6b-49d5-a095-e9f71abe7def'},
-    'armor': {'id': '29b2f4d9-67f6-4061-85dd-cd5d6ec02bb8'}
+    'armor': {'id': '29b2f4d9-67f6-4061-85dd-cd5d6ec02bb8'},
+    'message': {'id': '0a0b0c0d-0e0f-0a0b-0c0d-0e0f0a0b0c0d'}
 }
 
 
@@ -282,3 +283,47 @@ def test_get_armor_by_id_not_found(test_client):
     response = test_client.get('/armor/%s' % TEST_DATA['armor']['id'])
     response.assert_status_code(404)
     response.assert_body({'errors': ['Armor not found']})
+
+
+@patch('wtf.core.messages.save')
+@patch('wtf.core.messages.find_by_id')
+def test_create_message_reply(
+        mock_save,
+        mock_find_by_id,
+        test_client
+    ):
+    expected = 'foobar'
+    mock_save.return_value = expected
+    mock_find_by_id.return_value = expected
+    response = test_client.post('/messages/%s/replies' % TEST_DATA['message']['id'],
+        body={'body': 'test', 'subject': 'test', 'recipients': ['test']}
+    )
+    response.assert_status_code(200)
+    response.assert_body({'message': 'foobar'})
+
+
+@patch('wtf.core.messages.find_by_id')
+def test_get_message_by_id(
+        mock_find_by_id,
+        test_client
+    ):
+    expected = {'message': TEST_DATA}
+    mock_find_by_id.return_value = TEST_DATA
+    for _ in range(2):
+        response = test_client.get('/messages/%s' % TEST_DATA['message']['id'])
+        response.assert_status_code(200)
+        response.assert_body(expected)
+
+
+@patch('wtf.core.messages.get_recipient_messages')
+def test_handle_get_message_query(
+        mock_get_recipient_messages,
+        test_client
+    ):
+    expected = 'foobar'
+    mock_get_recipient_messages.return_value = expected
+    response = test_client.get('/messages',
+        query_string={'recipient': 'test'}
+    )
+    response.assert_status_code(200)
+    response.assert_body({'messages': 'foobar'})
