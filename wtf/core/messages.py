@@ -1,7 +1,14 @@
 '''
 wtf.core.messages
 
-Routes and functions for manipulating messages.
+Messages have the following properties:
+  * id: the message UUID (Universally Unique Identifier)
+  * body: the body of the message
+  * sender: the account id that send the messages
+  * parent: the previous message id (None if no previous message)
+  * subject: the subject of the message
+  * copies: the recipients copies of the message
+  * created_at: the time the message was created
 '''
 from datetime import datetime
 from uuid import uuid4
