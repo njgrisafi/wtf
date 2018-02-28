@@ -286,6 +286,20 @@ def test_get_armor_by_id_not_found(test_client):
 
 
 @patch('wtf.core.messages.save')
+def test_create_message(
+        mock_save,
+        test_client
+    ):
+    expected = 'foobar'
+    mock_save.return_value = expected
+    response = test_client.post('/messages',
+        body={'body': 'test', 'subject': 'test', 'recipients': ['test']}
+    )
+    response.assert_status_code(200)
+    response.assert_body({'message': 'foobar'})
+
+
+@patch('wtf.core.messages.save')
 @patch('wtf.core.messages.find_by_id')
 def test_create_message_reply(
         mock_save,
