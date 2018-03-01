@@ -17,18 +17,50 @@ from wtf.core.errors import NotFoundError, ValidationError
 REPO = {'by_id': {}, 'by_recipient': {}}
 
 
+def create(**kwargs):
+    '''Create a message.
+
+    Messages have the following properties:
+        id: a UUID for the message
+        sender: a UUID for the sender
+        parent: the UUID for the previous message
+        subject: the subject of the message
+        body: the body of the message
+        recipients: the list of UUID for the recipients
+    '''
+    message_id = kwargs.get('id')
+    body = kwargs.get('body')
+    subject = kwargs.get('subject', '(No Subject)')
+    recipients = kwargs.get('recipients')
+    recipients = recipients if recipients is not None else []
+    parent = kwargs.get('parent')
+    sender = kwargs.get('sender')
+    message = {
+        'id': message_id,
+        'sender': sender,
+        'parent': parent,
+        'subject': subject,
+        'body': body,
+        'copies': [],
+        'created_at': datetime.utcnow().isoformat()
+    }
+    for recipient in recipients:
+        message['copies'].append(create_copy(message, recipient=recipient))
+    return message
+
 def save(message):
     '''Persist a message.
 
     Creates a message
     '''
+    print("crazy")
     message = message.copy()
     if message.get('id') is None:
         message['id'] = str(uuid4())
     validate(message)
-    for c in message['copies']:
-        c['message'] = message['id']
-        REPO.get('by_recipient').setdefault(c['recipient'], []).append(c)
+    for copy in message['copies']:
+        copy['message'] = message['id']
+        REPO.get('by_recipient').setdefault(copy['recipient'], []).append(copy)
     REPO.get('by_id')[message.get('id')] = message
     return message
 
@@ -36,7 +68,7 @@ def save(message):
 def validate(message):
     '''Validate a mesage.
 
-    Raises a ValidationError if the provided message is invalid..
+    Raises a ValidationError if the provided message is invalid.
     '''
     subject = message.get('subject')
     body = message.get('body')
@@ -53,6 +85,10 @@ def validate(message):
 
 
 def get_recipient_messages(**kwargs):
+    '''Retrieves messages for a recipients
+
+    Raises a NotFoundError if recipient could not be found.
+    '''
     recipient_id = kwargs.get('recipient')
     status = kwargs.get('status')
     message_copies = find_by_recipient(recipient_id)
@@ -82,37 +118,6 @@ def find_by_recipient(recipient_id):
     if messages is None:
         raise NotFoundError('Recipient not found')
     return messages
-
-
-def create(**kwargs):
-    '''Create a message.
-
-    Messages have the following properties:
-        id: a UUID for the message
-        sender: a UUID for the sender
-        parent: the UUID for the previous message
-        subject: the subject of the message
-        body: the body of the message
-        recipients: the list of UUID for the recipients
-    '''
-    message_id = kwargs.get('id')
-    body = kwargs.get('body')
-    subject = kwargs.get('subject', '(No Subject)')
-    recipients = kwargs.get('recipients', [])
-    parent = kwargs.get('parent')
-    sender = kwargs.get('sender')
-    message = {
-        'id': message_id,
-        'sender': sender,
-        'parent': parent,
-        'subject': subject,
-        'body': body,
-        'copies': [],
-        'created_at': datetime.utcnow().isoformat()
-    }
-    for r in recipients:
-        message['copies'].append(create_copy(message, recipient=r))
-    return message
 
 
 def create_copy(message, **kwargs):

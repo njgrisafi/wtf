@@ -292,9 +292,7 @@ def test_create_message(
     ):
     expected = 'foobar'
     mock_save.return_value = expected
-    response = test_client.post('/messages',
-        body={'body': 'test', 'subject': 'test', 'recipients': ['test']}
-    )
+    response = test_client.post('/messages', body={})
     response.assert_status_code(200)
     response.assert_body({'message': 'foobar'})
 
@@ -310,8 +308,8 @@ def test_create_message_reply(
     mock_save.return_value = expected
     mock_find_by_id.return_value = expected
     response = test_client.post('/messages/%s/replies' % TEST_DATA['message']['id'],
-        body={'body': 'test', 'subject': 'test', 'recipients': ['test']}
-    )
+                                body={'body': 'test', 'subject': 'test', 'recipients': ['test']}
+                               )
     response.assert_status_code(200)
     response.assert_body({'message': 'foobar'})
 
@@ -337,7 +335,7 @@ def test_handle_get_message_query(
     expected = 'foobar'
     mock_get_recipient_messages.return_value = expected
     response = test_client.get('/messages',
-        query={'recipient': 'test'}
-    )
+                               query_string={'recipient': 'test'}
+                              )
     response.assert_status_code(200)
     response.assert_body({'messages': 'foobar'})
