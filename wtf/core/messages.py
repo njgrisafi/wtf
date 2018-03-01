@@ -53,10 +53,8 @@ def validate(message):
 
 
 def get_recipient_messages(**kwargs):
-    print("hi")
     recipient_id = kwargs.get('recipient')
     status = kwargs.get('status')
-    print(recipient_id)
     message_copies = find_by_recipient(recipient_id)
     if status:
         message_copies = list(filter(lambda m: m['status'] == str(status), message_copies))

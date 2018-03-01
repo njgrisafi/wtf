@@ -337,7 +337,7 @@ def test_handle_get_message_query(
     expected = 'foobar'
     mock_get_recipient_messages.return_value = expected
     response = test_client.get('/messages',
-        query_string={'recipient': 'test'}
+        query={'recipient': 'test'}
     )
     response.assert_status_code(200)
     response.assert_body({'messages': 'foobar'})

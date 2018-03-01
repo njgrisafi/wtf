@@ -48,12 +48,12 @@ class TestClient(object):
     def get(self, path='', **kwargs):
         '''Send a GET request'''
         path = '%s%s' % (self.root_path, path)
-        query_string = kwargs.get('query_string', {})
+        query = kwargs.get('query', {})
         headers = kwargs.get('headers', self.default_headers)
         response = self.test_client.get(
             path=path,
             headers=headers,
-            query_string=query_string
+            query_string=query
         )
         return AssertableResponse(response)
 

@@ -337,7 +337,7 @@ def get_messages_query_request():
 
     $ curl \
         --request GET \
-        --url http://localhost:5000/api/messages?recipient=<recipient_id>?status=<status> \
+        --url http://localhost:5000/api/messages?recipient=<recipient_id>&status=<status> \
         --write-out "\n"
     '''
     args = get_query_args()
