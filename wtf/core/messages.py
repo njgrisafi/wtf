@@ -187,10 +187,22 @@ def find_copies_by_id_and_recipient(**kwargs):
 
 
 def transform(message):
+    '''Transform a messages
+
+    The following transformations will be performed:
+        * copies: added
+    '''
     copies = find_copies_by_id(message.get('id'))
     message['copies'] = copies
     return message
 
 
 def transform_copies(message_copies):
-    return list(map(lambda m: find_by_id(m['message']), message_copies))
+    '''Transform message copies
+
+    The following transformations will be performed:
+        * original: added
+    '''
+    for copy in message_copies:
+        copy['original'] = find_by_id(copy['message'])
+    return message_copies

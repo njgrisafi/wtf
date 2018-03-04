@@ -199,7 +199,9 @@ def test_find_copies_by_id_and_recipient():
     recipient = 'foo'
     key = TEST_DATA['id'] + ',' + recipient
     messages.REPO_COPIES['by_id_and_recipient'][key] = expected
-    actual = messages.find_copies_by_id_and_recipient(message_id=TEST_DATA['id'], recipient=recipient)
+    actual = messages.find_copies_by_id_and_recipient(
+        message_id=TEST_DATA['id'], recipient=recipient
+    )
     assert expected == actual
 
 
@@ -250,12 +252,19 @@ def test_transform(mock_find_copies_by_id):
 @patch('wtf.core.messages.find_by_id')
 def test_transform_copies(mock_find_by_id):
     expected = [{
-        'id': TEST_DATA['id'],
-        'sender': TEST_DATA['sender'],
-        'subject': TEST_DATA['subject'],
-        'body': TEST_DATA['body']
+        'deleted_at': None,
+        'read_at': None,
+        'message': TEST_DATA['id'],
+        'recipient': 'foo',
+        'status': 'unread',
+        'original': {
+            'id': TEST_DATA['id'],
+            'sender': TEST_DATA['sender'],
+            'subject': TEST_DATA['subject'],
+            'body': TEST_DATA['body']
+        }
     }]
-    mock_find_by_id.return_value = expected[0]
+    mock_find_by_id.return_value = expected[0]['original']
     actual = messages.transform_copies([
         {
             'deleted_at': None,
