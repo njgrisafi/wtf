@@ -293,49 +293,54 @@ def test_create_message(
     expected = 'foobar'
     mock_save.return_value = expected
     response = test_client.post('/messages', body={})
-    response.assert_status_code(200)
+    response.assert_status_code(201)
     response.assert_body({'message': 'foobar'})
 
 
+@patch('wtf.core.messages.transform')
 @patch('wtf.core.messages.save')
 @patch('wtf.core.messages.find_by_id')
 def test_create_message_reply(
         mock_save,
         mock_find_by_id,
+        mock_transform,
         test_client
     ):
-    expected = 'foobar'
-    mock_save.return_value = expected
-    mock_find_by_id.return_value = expected
+    mock_save.return_value = 'foobar'
+    mock_find_by_id.return_value = 'foobar'
+    mock_transform.return_value = 'foobar-transformed'
     response = test_client.post('/messages/%s/replies' % TEST_DATA['message']['id'],
                                 body={'body': 'test', 'subject': 'test', 'recipients': ['test']}
                                )
-    response.assert_status_code(200)
-    response.assert_body({'message': 'foobar'})
+    response.assert_status_code(201)
+    response.assert_body({'message': 'foobar-transformed'})
 
-
+@patch('wtf.core.messages.transform')
 @patch('wtf.core.messages.find_by_id')
 def test_get_message_by_id(
         mock_find_by_id,
+        mock_transform,
         test_client
     ):
-    expected = {'message': TEST_DATA}
-    mock_find_by_id.return_value = TEST_DATA
+    mock_find_by_id.return_value = 'foobar'
+    mock_transform.return_value = 'foobar-transformed'
     for _ in range(2):
         response = test_client.get('/messages/%s' % TEST_DATA['message']['id'])
         response.assert_status_code(200)
-        response.assert_body(expected)
+        response.assert_body({'message': 'foobar-transformed'})
 
 
-@patch('wtf.core.messages.get_recipient_messages')
+@patch('wtf.core.messages.transform_copies')
+@patch('wtf.core.messages.get_recipient_message_copies')
 def test_handle_get_message_query(
-        mock_get_recipient_messages,
+        mock_get_recipient_message_copies,
+        mock_transform_copies,
         test_client
     ):
-    expected = 'foobar'
-    mock_get_recipient_messages.return_value = expected
+    mock_get_recipient_message_copies.return_value = 'foobar'
+    mock_transform_copies.return_value = 'foobar-transformed'
     response = test_client.get('/messages',
                                query_string={'recipient': 'test'}
                               )
     response.assert_status_code(200)
-    response.assert_body({'messages': 'foobar'})
+    response.assert_body({'messages': 'foobar-transformed'})

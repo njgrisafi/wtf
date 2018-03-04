@@ -14,7 +14,9 @@ from datetime import datetime
 from uuid import uuid4
 from wtf.core.errors import NotFoundError, ValidationError
 
-REPO = {'by_id': {}, 'by_recipient': {}}
+REPO = {'by_id': {}}
+
+REPO_COPIES = {'by_id': {}, 'by_id_and_recipient': {}, 'by_recipient': {}}
 
 
 def create(**kwargs):
@@ -48,19 +50,44 @@ def create(**kwargs):
         message['copies'].append(create_copy(message, recipient=recipient))
     return message
 
+
+def create_copy(message, **kwargs):
+    '''Create a message copy
+
+    MessageCopies have the following properties:
+        message: a UUID for the original message
+        recipient: the UUID of the recipient
+        status: the status of the current message: unread, read, deleted, saved
+        read_at: the time the recipient read the mesaage
+        deleted_at: the time the recipient deleted the message
+    '''
+    message_id = message.get('id')
+    recipient = kwargs.get('recipient')
+    status = kwargs.get('status', 'unread')
+    return {
+        'message': message_id,
+        'recipient': recipient,
+        'status': status,
+        'read_at': None,
+        'deleted_at': None
+    }
+
+
 def save(message):
     '''Persist a message.
 
     Creates a message
     '''
-    print("crazy")
     message = message.copy()
     if message.get('id') is None:
         message['id'] = str(uuid4())
     validate(message)
     for copy in message['copies']:
         copy['message'] = message['id']
-        REPO.get('by_recipient').setdefault(copy['recipient'], []).append(copy)
+        REPO_COPIES.get('by_id').setdefault(copy['message'], []).append(copy)
+        REPO_COPIES.get('by_recipient').setdefault(copy['recipient'], []).append(copy)
+        REPO_COPIES.get('by_id_and_recipient')[copy['message'] + ',' + copy['recipient']] = copy
+    message.pop('copies')
     REPO.get('by_id')[message.get('id')] = message
     return message
 
@@ -84,17 +111,17 @@ def validate(message):
         raise ValidationError(errors=errors)
 
 
-def get_recipient_messages(**kwargs):
+def get_recipient_message_copies(**kwargs):
     '''Retrieves messages for a recipients
 
     Raises a NotFoundError if recipient could not be found.
     '''
     recipient_id = kwargs.get('recipient')
     status = kwargs.get('status')
-    message_copies = find_by_recipient(recipient_id)
+    message_copies = find_copies_by_recipient(recipient_id)
     if status:
         message_copies = list(filter(lambda m: m['status'] == str(status), message_copies))
-    return list(map(lambda m: find_by_id(m['message']), message_copies))
+    return message_copies
 
 
 
@@ -109,34 +136,47 @@ def find_by_id(message_id):
     return message
 
 
-def find_by_recipient(recipient_id):
+def find_copies_by_recipient(recipient_id):
     '''Find messages that belong to the provided recipient id.
 
     Raises a NotFoundError if the recipient could not be found.
     '''
-    messages = REPO.get('by_recipient').get(recipient_id)
+    messages = REPO_COPIES.get('by_recipient').get(recipient_id)
     if messages is None:
         raise NotFoundError('Recipient not found')
     return messages
 
 
-def create_copy(message, **kwargs):
-    '''Create a message copy
+def find_copies_by_id(message_id):
+    '''Finds a message copies for a given message ID.
 
-    MessageCopies have the following properties:
-        message: a UUID for the original message
-        recipient: the UUID of the recipient
-        status: the status of the current message: unread, read, deleted, saved
-        read_at: the time the recipient read the mesaage
-        deleted_at: the time the recipient deleted the message
+    Raises a NotFoundError if the message copies could not be found.
     '''
-    message_id = message.get('id')
+    messages = REPO_COPIES.get('by_id').get(message_id)
+    if messages is None:
+        raise NotFoundError('Message copies not found')
+    return messages
+
+
+def find_copies_by_id_and_recipient(**kwargs):
+    '''Finds a message copy for a given message ID and recipient.
+
+    Raises a NotFoundError if the message for the recipient could not be found.
+    '''
+    message_id = kwargs.get('message_id')
     recipient = kwargs.get('recipient')
-    status = kwargs.get('status', 'unread')
-    return {
-        'message': message_id,
-        'recipient': recipient,
-        'status': status,
-        'read_at': None,
-        'deleted_at': None
-    }
+    key = message_id + ',' + recipient
+    messages = REPO_COPIES.get('by_id_and_recipient').get(key)
+    if messages is None:
+        raise NotFoundError('Message for Recipient not found')
+    return messages
+
+
+def transform(message):
+    copies = find_copies_by_id(message.get('id'))
+    message['copies'] = copies
+    return message
+
+
+def transform_copies(message_copies):
+    return list(map(lambda m: find_by_id(m['message']), message_copies))

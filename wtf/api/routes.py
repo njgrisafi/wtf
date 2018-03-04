@@ -332,7 +332,7 @@ def get_armor_by_id(armor_id):
 
 
 @BLUEPRINT.route('/messages', methods=['GET'])
-def get_messages_query_request():
+def get_messages():
     '''Handle message retrieval by recipient id.
 
     $ curl \
@@ -343,12 +343,12 @@ def get_messages_query_request():
     args = get_query_args()
     status = args.get('status')
     recipient = args.get('recipient')
-    recipient_messages = messages.get_recipient_messages(recipient=recipient, status=status)
-    return jsonify({'messages': recipient_messages}), 200
+    message_copies = messages.get_recipient_message_copies(recipient=recipient, status=status)
+    return jsonify({'messages': messages.transform_copies(message_copies)}), 200
 
 
 @BLUEPRINT.route('/messages', methods=['POST'])
-def create_message_request():
+def create_message():
     '''Handle message creation requests.
 
     $ curl \
@@ -368,7 +368,20 @@ def create_message_request():
         body=body.get('body'),
         recipients=body.get('recipients')
     ))
-    return jsonify({'message': message}), 200
+    return jsonify({'message': message}), 201
+
+
+@BLUEPRINT.route('/messages/<message_id>', methods=['GET'])
+def get_message_by_id(message_id):
+    '''Handle message retrieval by ID requests.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/messages/<message_id> \
+        --write-out "\n"
+    '''
+    message = messages.find_by_id(message_id)
+    return jsonify({'message': messages.transform(message)}), 200
 
 
 @BLUEPRINT.route('/messages/<message_id>/replies', methods=['POST'])
@@ -394,17 +407,4 @@ def create_message_reply(message_id):
         recipients=body.get('recipients'),
         parent=message_id
     ))
-    return jsonify({'message': message}), 200
-
-
-@BLUEPRINT.route('/messages/<message_id>', methods=['GET'])
-def get_message_by_id(message_id):
-    '''Handle message retrieval by ID requests.
-
-    $ curl \
-        --request GET \
-        --url http://localhost:5000/api/messages/<message_id> \
-        --write-out "\n"
-    '''
-    message = messages.find_by_id(message_id)
-    return jsonify({'message': message}), 200
+    return jsonify({'message': messages.transform(message)}), 201
