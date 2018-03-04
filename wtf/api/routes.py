@@ -408,3 +408,17 @@ def create_message_reply(message_id):
         parent=message_id
     ))
     return jsonify({'message': messages.transform(message)}), 201
+
+
+@BLUEPRINT.route('/messages/<message_id>/replies', methods=['GET'])
+def get_message_replies(message_id):
+    '''Gets replies for a message.
+
+    $ curl \
+        --request GET \
+        --url http://localhost:5000/api/messages/<message_id>/replies \
+        --write-out "\n"
+    '''
+    message_replies = messages.find_by_parent(message_id)
+    message_replies = list(map(lambda m: messages.transform(m), message_replies))
+    return jsonify({'replies': message_replies}), 200

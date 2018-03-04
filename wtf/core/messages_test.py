@@ -16,7 +16,7 @@ TEST_DATA = {
 
 
 def setup_function():
-    messages.REPO = {'by_id': {}}
+    messages.REPO = {'by_id': {}, 'by_parent': {}}
     messages.REPO_COPIES = {'by_id': {}, 'by_id_and_recipient': {}, 'by_recipient': {}}
 
 
@@ -39,7 +39,7 @@ def test_create_message_defaults():
 def test_save_message_insert(mock_validate, mock_uuid4):
     expected = {
         'id': TEST_DATA['id'],
-        'parent': None,
+        'parent': 'foo',
         'sender': None,
         'subject': TEST_DATA['subject'],
         'body': TEST_DATA['body'],
@@ -68,6 +68,7 @@ def test_save_message_insert(mock_validate, mock_uuid4):
     actual = messages.save(test_message)
     assert expected == actual
     assert expected == messages.REPO['by_id'][TEST_DATA['id']]
+    assert [expected] == messages.REPO['by_parent'][expected['parent']]
     assert copies == messages.REPO_COPIES['by_id'][TEST_DATA['id']]
     assert [copies[0]] == messages.REPO_COPIES['by_recipient']['foo']
     assert [copies[1]] == messages.REPO_COPIES['by_recipient']['bar']
@@ -83,6 +84,7 @@ def test_save_message_invalid(mock_validate):
     with pytest.raises(ValidationError):
         messages.save({})
     assert not messages.REPO['by_id'].values()
+    assert not messages.REPO['by_parent'].values()
     assert not messages.REPO_COPIES['by_id'].values()
     assert not messages.REPO_COPIES['by_id_and_recipient'].values()
     assert not messages.REPO_COPIES['by_recipient'].values()
@@ -143,6 +145,22 @@ def test_find_by_id_not_found():
         messages.find_by_id(TEST_DATA['id'])
     actual = str(e.value)
     assert expected == actual
+
+
+def test_find_by_parent():
+    expected = 'foobar'
+    messages.REPO['by_parent'][TEST_DATA['id']] = expected
+    actual = messages.find_by_parent(TEST_DATA['id'])
+    assert expected == actual
+
+
+def test_find_by_parent_not_found():
+    expected = 'Parent messages not found'
+    with pytest.raises(NotFoundError) as e:
+        messages.find_by_parent(TEST_DATA['id'])
+    actual = str(e.value)
+    assert expected == actual
+
 
 
 def test_find_copies_by_id():
@@ -226,7 +244,7 @@ def test_transform(mock_find_copies_by_id):
         'subject': TEST_DATA['subject'],
         'body': TEST_DATA['body']
     })
-    assert expected ==actual
+    assert expected == actual
 
 
 @patch('wtf.core.messages.find_by_id')

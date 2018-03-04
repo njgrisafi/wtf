@@ -14,7 +14,7 @@ from datetime import datetime
 from uuid import uuid4
 from wtf.core.errors import NotFoundError, ValidationError
 
-REPO = {'by_id': {}}
+REPO = {'by_id': {}, 'by_parent': {}}
 
 REPO_COPIES = {'by_id': {}, 'by_id_and_recipient': {}, 'by_recipient': {}}
 
@@ -89,6 +89,8 @@ def save(message):
         REPO_COPIES.get('by_id_and_recipient')[copy['message'] + ',' + copy['recipient']] = copy
     message.pop('copies')
     REPO.get('by_id')[message.get('id')] = message
+    if message.get('parent') is not None:
+        REPO.get('by_parent').setdefault(message.get('parent'), []).append(message)
     return message
 
 
@@ -126,7 +128,7 @@ def get_recipient_message_copies(**kwargs):
 
 
 def find_by_id(message_id):
-    '''Find an message with the provided id.
+    '''Find a message with the provided id.
 
     Raises a NotFoundError if the message could not be found.
     '''
@@ -134,6 +136,18 @@ def find_by_id(message_id):
     if message is None:
         raise NotFoundError('Message not found')
     return message
+
+
+def find_by_parent(message_id):
+    '''Find messages for a given parent message ID.
+
+    Raises a NotFoundError if the parent message ID could not be found.
+    '''
+    messages = REPO.get('by_parent').get(message_id)
+    if messages is None:
+        raise NotFoundError('Parent messages not found')
+    return messages
+
 
 
 def find_copies_by_recipient(recipient_id):

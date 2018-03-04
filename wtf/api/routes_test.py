@@ -332,7 +332,7 @@ def test_get_message_by_id(
 
 @patch('wtf.core.messages.transform_copies')
 @patch('wtf.core.messages.get_recipient_message_copies')
-def test_handle_get_message_query(
+def test_get_messages(
         mock_get_recipient_message_copies,
         mock_transform_copies,
         test_client
@@ -344,3 +344,17 @@ def test_handle_get_message_query(
                               )
     response.assert_status_code(200)
     response.assert_body({'messages': 'foobar-transformed'})
+
+
+@patch('wtf.core.messages.transform')
+@patch('wtf.core.messages.find_by_parent')
+def test_get_message_replies(
+        mock_find_by_parent,
+        mock_transform,
+        test_client
+    ):
+    mock_find_by_parent.return_value = ['foobar']
+    mock_transform.return_value = 'foobar-transformed'
+    response = test_client.get('/messages/%s/replies' % TEST_DATA['message']['id'])
+    response.assert_status_code(200)
+    response.assert_body({'replies': ['foobar-transformed']})
