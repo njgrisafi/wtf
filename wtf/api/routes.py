@@ -419,6 +419,8 @@ def get_message_replies(message_id):
         --url http://localhost:5000/api/messages/<message_id>/replies \
         --write-out "\n"
     '''
-    message_replies = messages.find_by_parent(message_id)
-    message_replies = list(map(lambda m: messages.transform(m), message_replies))
-    return jsonify({'replies': message_replies}), 200
+    replies = messages.find_by_parent(message_id)
+    transformed_replies = []
+    for reply in replies:
+        transformed_replies.append(messages.transform(reply))
+    return jsonify({'replies': transformed_replies}), 200
