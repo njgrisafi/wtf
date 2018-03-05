@@ -249,6 +249,38 @@ def test_transform(mock_find_copies_by_id):
     assert expected == actual
 
 
+def test_transform_with_copies():
+    copies = [
+        {
+            'deleted_at': None,
+            'read_at': None,
+            'message': TEST_DATA['id'],
+            'recipient': 'foo',
+            'status': 'unread'
+        },
+        {
+            'deleted_at': None,
+            'read_at': None,
+            'message': TEST_DATA['id'],
+            'recipient': 'bar',
+            'status': 'unread'
+        }
+    ]
+    expected = {
+        'id': TEST_DATA['id'],
+        'sender': TEST_DATA['sender'],
+        'subject': TEST_DATA['subject'],
+        'body': TEST_DATA['body'],
+        'copies': copies
+    }
+    actual = messages.transform({
+        'id': TEST_DATA['id'],
+        'sender': TEST_DATA['sender'],
+        'subject': TEST_DATA['subject'],
+        'body': TEST_DATA['body']
+    }, copies=copies)
+    assert expected == actual
+
 
 @patch('wtf.core.messages.find_by_id')
 def test_transform_copy(mock_find_by_id):
@@ -303,4 +335,12 @@ def test_transform_copies(mock_transform_copy):
             'status': 'unread'
         }
     ])
+    assert expected == actual
+
+
+@patch('wtf.core.messages.transform')
+def test_transform_all(mock_transform):
+    expected = [{'transformed': 'transformed'}, {'transformed': 'transformed'}]
+    mock_transform.return_value = {'transformed': 'transformed'}
+    actual = messages.transform_all([{'foo1': 'bar1'}, {'foo2': 'bar2'}])
     assert expected == actual

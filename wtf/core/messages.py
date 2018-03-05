@@ -186,19 +186,22 @@ def find_copies_by_id_and_recipient(**kwargs):
     return messages
 
 
-def transform(message):
+def transform(message, copies=None):
     '''Transform a messages
 
     The following transformations will be performed:
         * copies: added
     '''
-    copies = find_copies_by_id(message.get('id'))
+    if copies is None:
+        copies = find_copies_by_id(message.get('id'))
     message['copies'] = copies
     return message
 
 
 def transform_copy(message_copy):
     '''Transforms a message copy
+
+    The following transformations will be performed:
         * original: added
     '''
     message_copy['original'] = find_by_id(message_copy['message'])
@@ -207,11 +210,19 @@ def transform_copy(message_copy):
 
 def transform_copies(message_copies):
     '''Transform message copies
-
-    The following transformations will be performed:
-        * original: added
     '''
     for message_copy in message_copies:
-        message_copy.update(transform_copy(message_copy))
-        print(message_copy)
+        result = transform_copy(message_copy)
+        message_copy.clear()
+        message_copy.update(result)
     return message_copies
+
+
+def transform_all(messages):
+    '''Transforms an array of messages
+    '''
+    for message in messages:
+        result = transform(message)
+        message.clear()
+        message.update(result)
+    return messages
