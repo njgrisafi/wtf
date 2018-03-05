@@ -25,11 +25,6 @@ def get_json_body():
     return body
 
 
-def get_query_args():
-    '''Get the request query args.'''
-    return request.args
-
-
 @BLUEPRINT.errorhandler(ValidationError)
 def handle_invalid_request(error):
     '''Handle ValidationError errors.'''
@@ -340,7 +335,7 @@ def get_messages():
         --url http://localhost:5000/api/messages?recipient=<recipient_id>&status=<status> \
         --write-out "\n"
     '''
-    args = get_query_args()
+    args = request.args
     status = args.get('status')
     recipient = args.get('recipient')
     message_copies = messages.get_recipient_message_copies(recipient=recipient, status=status)
@@ -423,7 +418,7 @@ def get_message_replies(message_id):
         --url http://localhost:5000/api/messages/<message_id>/replies \
         --write-out "\n"
     '''
-    replies = messages.find_by_parent(message_id)
+    replies = messages.find_by_parent_id(message_id)
     transformed_replies = []
     for reply in replies:
         transformed_replies.append(messages.transform(reply))

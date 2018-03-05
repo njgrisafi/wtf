@@ -64,44 +64,19 @@ def test_save_message_insert(mock_validate, mock_uuid4):
         'parent': 'foo',
         'sender': None,
         'subject': TEST_DATA['subject'],
-        'body': TEST_DATA['body'],
-        'copies': [
-            {
-                'timestamps': {
-                    'deleted_at': None,
-                    'read_at': None
-                },
-                'message': TEST_DATA['id'],
-                'recipient': 'foo',
-                'status': 'unread'
-            },
-            {
-                'timestamps': {
-                    'deleted_at': None,
-                    'read_at': None
-                },
-                'message': TEST_DATA['id'],
-                'recipient': 'bar',
-                'status': 'unread'
-            }
-        ]
+        'body': TEST_DATA['body']
     }
-    test_message = expected.copy()
-    test_message['id'] = None
     mock_validate.return_value = None
     mock_uuid4.return_value = TEST_DATA['id']
-    copies = expected.pop('copies')
-    actual = messages.save(test_message)
+    actual = messages.save({
+        'parent': 'foo',
+        'sender': None,
+        'subject': TEST_DATA['subject'],
+        'body': TEST_DATA['body']
+    })
     assert expected == actual
     assert expected == messages.REPO['by_id'][TEST_DATA['id']]
     assert [expected] == messages.REPO['by_parent'][expected['parent']]
-    assert copies == messages.REPO_COPIES['by_id'][TEST_DATA['id']]
-    assert [copies[0]] == messages.REPO_COPIES['by_recipient']['foo']
-    assert [copies[1]] == messages.REPO_COPIES['by_recipient']['bar']
-    for c in copies:
-        key = TEST_DATA['id'] + ',' + c['recipient']
-        assert c == messages.REPO_COPIES['by_id_and_recipient'][key]
-        assert [c] == messages.REPO_COPIES['by_recipient'][c['recipient']]
 
 
 @patch('wtf.core.messages.validate')
@@ -198,19 +173,19 @@ def test_validate_copy_missing_fields():
     assert set(expected).issubset(actual)
 
 
-@patch('wtf.core.messages.find_copies_by_recipient')
-def test_get_recipient_message_copies(mock_find_copies_by_recipient):
+@patch('wtf.core.messages.find_copies_by_recipient_id')
+def test_get_recipient_message_copies(mock_find_copies_by_recipient_id):
     expected = [{'message': TEST_DATA['id'], 'status': 'unread'}]
-    mock_find_copies_by_recipient.return_value = expected
+    mock_find_copies_by_recipient_id.return_value = expected
     actual = messages.get_recipient_message_copies()
     assert expected == actual
 
 
-@patch('wtf.core.messages.find_copies_by_recipient')
-def test_get_recipient_message_copies_by_status(mock_find_copies_by_recipient):
+@patch('wtf.core.messages.find_copies_by_recipient_id')
+def test_get_recipient_message_copies_by_status(mock_find_copies_by_recipient_id):
     expected = []
     status = 'unread'
-    mock_find_copies_by_recipient.return_value = [
+    mock_find_copies_by_recipient_id.return_value = [
         {'message': TEST_DATA['id'], 'status': 'read'}
     ]
     actual = messages.get_recipient_message_copies(status=status)
@@ -232,17 +207,17 @@ def test_find_by_id_not_found():
     assert expected == actual
 
 
-def test_find_by_parent():
+def test_find_by_parent_id():
     expected = 'foobar'
     messages.REPO['by_parent'][TEST_DATA['id']] = expected
-    actual = messages.find_by_parent(TEST_DATA['id'])
+    actual = messages.find_by_parent_id(TEST_DATA['id'])
     assert expected == actual
 
 
-def test_find_by_parent_not_found():
+def test_find_by_parent_id_not_found():
     expected = 'Parent messages not found'
     with pytest.raises(NotFoundError) as e:
-        messages.find_by_parent(TEST_DATA['id'])
+        messages.find_by_parent_id(TEST_DATA['id'])
     actual = str(e.value)
     assert expected == actual
 
@@ -263,18 +238,18 @@ def test_find_copies_by_id_not_found():
     assert expected == actual
 
 
-def test_find_copies_by_recipient():
+def test_find_copies_by_recipient_id():
     expected = 'foobar'
     messages.REPO_COPIES['by_recipient'][TEST_DATA['id']] = expected
-    actual = messages.find_copies_by_recipient(TEST_DATA['id'])
+    actual = messages.find_copies_by_recipient_id(TEST_DATA['id'])
     assert expected == actual
 
 
-def test_find_copies_by_recipient_not_found():
+def test_find_copies_by_recipient_id_not_found():
     expected = 'Recipient not found'
     recipient = 'foo'
     with pytest.raises(NotFoundError) as e:
-        messages.find_copies_by_recipient(recipient)
+        messages.find_copies_by_recipient_id(recipient)
     actual = str(e.value)
     assert expected == actual
 

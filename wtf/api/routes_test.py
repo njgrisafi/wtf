@@ -357,13 +357,13 @@ def test_get_messages(
 
 
 @patch('wtf.core.messages.transform')
-@patch('wtf.core.messages.find_by_parent')
+@patch('wtf.core.messages.find_by_parent_id')
 def test_get_message_replies(
-        mock_find_by_parent,
+        mock_find_by_parent_id,
         mock_transform,
         test_client
     ):
-    mock_find_by_parent.return_value = ['foobar']
+    mock_find_by_parent_id.return_value = ['foobar']
     mock_transform.return_value = 'foobar-transformed'
     response = test_client.get('/messages/%s/replies' % TEST_DATA['message']['id'])
     response.assert_status_code(200)

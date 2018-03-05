@@ -4,10 +4,9 @@ wtf.core.messages
 Messages have the following properties:
   * id: the message UUID (Universally Unique Identifier)
   * body: the body of the message
-  * sender: the account id that send the messages
+  * sender: the character id that send the messages
   * parent: the previous message id (None if no previous message)
   * subject: the subject of the message
-  * copies: the recipients copies of the message
   * created_at: the time the message was created
 '''
 from datetime import datetime
@@ -21,14 +20,6 @@ REPO_COPIES = {'by_id': {}, 'by_id_and_recipient': {}, 'by_recipient': {}}
 
 def create(**kwargs):
     '''Create a message.
-
-    Messages have the following properties:
-        id: a UUID for the message
-        sender: a UUID for the sender
-        parent: the UUID for the previous message
-        subject: the subject of the message
-        body: the body of the message
-        recipients: the list of UUID for the recipients
     '''
     message_id = kwargs.get('id')
     body = kwargs.get('body')
@@ -53,8 +44,6 @@ def create_copies(message, recipients):
     '''Creates message copies.
     '''
     copies = []
-    print(message)
-    print(recipients)
     for recipient in recipients:
         copies.append(create_copy(message, recipient=recipient))
     return copies
@@ -90,12 +79,6 @@ def save(message):
     if message.get('id') is None:
         message['id'] = str(uuid4())
     validate(message)
-    for copy in message['copies']:
-        copy['message'] = message['id']
-        REPO_COPIES.get('by_id').setdefault(copy['message'], []).append(copy)
-        REPO_COPIES.get('by_recipient').setdefault(copy['recipient'], []).append(copy)
-        REPO_COPIES.get('by_id_and_recipient')[copy['message'] + ',' + copy['recipient']] = copy
-    message.pop('copies')
     REPO.get('by_id')[message.get('id')] = message
     if message.get('parent') is not None:
         REPO.get('by_parent').setdefault(message.get('parent'), []).append(message)
@@ -169,7 +152,7 @@ def get_recipient_message_copies(**kwargs):
     '''
     recipient_id = kwargs.get('recipient')
     status = kwargs.get('status')
-    message_copies = find_copies_by_recipient(recipient_id)
+    message_copies = find_copies_by_recipient_id(recipient_id)
     if status:
         message_copies = list(filter(lambda m: m['status'] == str(status), message_copies))
     return message_copies
@@ -187,7 +170,7 @@ def find_by_id(message_id):
     return message
 
 
-def find_by_parent(message_id):
+def find_by_parent_id(message_id):
     '''Find messages for a given parent message ID.
 
     Raises a NotFoundError if the parent message ID could not be found.
@@ -199,7 +182,7 @@ def find_by_parent(message_id):
 
 
 
-def find_copies_by_recipient(recipient_id):
+def find_copies_by_recipient_id(recipient_id):
     '''Find messages that belong to the provided recipient id.
 
     Raises a NotFoundError if the recipient could not be found.
@@ -222,7 +205,7 @@ def find_copies_by_id(message_id):
 
 
 def find_copies_by_id_and_recipient(**kwargs):
-    '''Finds a message copy for a given message ID and recipient.
+    '''Finds a message copy for a given message ID and recipient ID.
 
     Raises a NotFoundError if the message for the recipient could not be found.
     '''
