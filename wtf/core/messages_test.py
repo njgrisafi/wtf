@@ -249,8 +249,37 @@ def test_transform(mock_find_copies_by_id):
     assert expected == actual
 
 
+
 @patch('wtf.core.messages.find_by_id')
-def test_transform_copies(mock_find_by_id):
+def test_transform_copy(mock_find_by_id):
+    expected = {
+        'deleted_at': None,
+        'read_at': None,
+        'message': TEST_DATA['id'],
+        'recipient': 'foo',
+        'status': 'unread',
+        'original': {
+            'id': TEST_DATA['id'],
+            'sender': TEST_DATA['sender'],
+            'subject': TEST_DATA['subject'],
+            'body': TEST_DATA['body']
+        }
+    }
+    mock_find_by_id.return_value = expected['original']
+    actual = messages.transform_copy(
+        {
+            'deleted_at': None,
+            'read_at': None,
+            'message': TEST_DATA['id'],
+            'recipient': 'foo',
+            'status': 'unread'
+        }
+    )
+    assert expected == actual
+
+
+@patch('wtf.core.messages.transform_copy')
+def test_transform_copies(mock_transform_copy):
     expected = [{
         'deleted_at': None,
         'read_at': None,
@@ -264,7 +293,7 @@ def test_transform_copies(mock_find_by_id):
             'body': TEST_DATA['body']
         }
     }]
-    mock_find_by_id.return_value = expected[0]['original']
+    mock_transform_copy.return_value = expected[0]
     actual = messages.transform_copies([
         {
             'deleted_at': None,

@@ -197,12 +197,21 @@ def transform(message):
     return message
 
 
+def transform_copy(message_copy):
+    '''Transforms a message copy
+        * original: added
+    '''
+    message_copy['original'] = find_by_id(message_copy['message'])
+    return message_copy
+
+
 def transform_copies(message_copies):
     '''Transform message copies
 
     The following transformations will be performed:
         * original: added
     '''
-    for copy in message_copies:
-        copy['original'] = find_by_id(copy['message'])
+    for message_copy in message_copies:
+        message_copy.update(transform_copy(message_copy))
+        print(message_copy)
     return message_copies
