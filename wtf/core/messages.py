@@ -46,20 +46,28 @@ def create(**kwargs):
         'copies': [],
         'created_at': datetime.utcnow().isoformat()
     }
-    for recipient in recipients:
-        message['copies'].append(create_copy(message, recipient=recipient))
     return message
+
+
+def create_copies(message, recipients):
+    '''Creates message copies.
+    '''
+    copies = []
+    print(message)
+    print(recipients)
+    for recipient in recipients:
+        copies.append(create_copy(message, recipient=recipient))
+    return copies
 
 
 def create_copy(message, **kwargs):
     '''Create a message copy
 
-    MessageCopies have the following properties:
+    a Message Copy has the following properties:
         message: a UUID for the original message
         recipient: the UUID of the recipient
         status: the status of the current message: unread, read, deleted, saved
-        read_at: the time the recipient read the mesaage
-        deleted_at: the time the recipient deleted the message
+        timestamps: timestamp events for the message copy
     '''
     message_id = message.get('id')
     recipient = kwargs.get('recipient')
@@ -68,15 +76,15 @@ def create_copy(message, **kwargs):
         'message': message_id,
         'recipient': recipient,
         'status': status,
-        'read_at': None,
-        'deleted_at': None
+        'timestamps': {
+            'read_at': None,
+            'deleted_at': None
+        }
     }
 
 
 def save(message):
     '''Persist a message.
-
-    Creates a message
     '''
     message = message.copy()
     if message.get('id') is None:
@@ -94,6 +102,25 @@ def save(message):
     return message
 
 
+def save_copies(message_copies):
+    '''Persist message copies.
+    '''
+    for message_copy in message_copies:
+        save_copy(message_copy)
+    return message_copies
+
+
+def save_copy(message_copy):
+    '''Persist a message copy
+    '''
+    validate_copy(message_copy)
+    key = message_copy['message'] + ',' + message_copy['recipient']
+    REPO_COPIES.get('by_id').setdefault(message_copy['message'], []).append(message_copy)
+    REPO_COPIES.get('by_recipient').setdefault(message_copy['recipient'], []).append(message_copy)
+    REPO_COPIES.get('by_id_and_recipient')[key] = message_copy
+    return message_copy
+
+
 def validate(message):
     '''Validate a mesage.
 
@@ -109,6 +136,28 @@ def validate(message):
         errors.append('Missing required field: body')
     if copies is None:
         errors.append('Missing required field: copies')
+    if errors:
+        raise ValidationError(errors=errors)
+
+
+def validate_copy(message_copy):
+    '''Validate a mesage copy.
+
+    Raises a ValidationError if the provided message copy is invalid.
+    '''
+    recipient = message_copy.get('recipient')
+    status = message_copy.get('status')
+    timestamps = message_copy.get('timestamps')
+    message = message_copy.get('message')
+    errors = []
+    if recipient is None:
+        errors.append('Missing required field: recipient')
+    if status is None:
+        errors.append('Missing required field: status')
+    if timestamps is None:
+        errors.append('Missing required field: timestamps')
+    if message is None:
+        errors.append('Missing required field: message')
     if errors:
         raise ValidationError(errors=errors)
 
@@ -186,15 +235,15 @@ def find_copies_by_id_and_recipient(**kwargs):
     return messages
 
 
-def transform(message, copies=None):
+def transform(message, message_copies=None):
     '''Transform a messages
 
     The following transformations will be performed:
         * copies: added
     '''
-    if copies is None:
-        copies = find_copies_by_id(message.get('id'))
-    message['copies'] = copies
+    if message_copies is None:
+        message_copies = find_copies_by_id(message.get('id'))
+    message['copies'] = message_copies
     return message
 
 

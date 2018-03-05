@@ -363,12 +363,14 @@ def create_message():
         }'
     '''
     body = get_json_body()
+    recipients = body.get('recipients', [])
     message = messages.save(messages.create(
         subject=body.get('subject'),
         body=body.get('body'),
-        recipients=body.get('recipients')
+        recipients=recipients
     ))
-    return jsonify({'message': message}), 201
+    message_copies = messages.save_copies(messages.create_copies(message, recipients))
+    return jsonify({'message': messages.transform(message, message_copies=message_copies)}), 201
 
 
 @BLUEPRINT.route('/messages/<message_id>', methods=['GET'])
@@ -396,18 +398,20 @@ def create_message_reply(message_id):
         --data '{
             "subject": "...",
             "body": "...",
-            "recipients": ["..."],
+            "recipients": ["..."]
         }'
     '''
     messages.find_by_id(message_id)
     body = get_json_body()
+    recipients = body.get('recipients', [])
     message = messages.save(messages.create(
         subject=body.get('subject'),
         body=body.get('body'),
-        recipients=body.get('recipients'),
+        recipients=recipients,
         parent=message_id
     ))
-    return jsonify({'message': messages.transform(message)}), 201
+    message_copies = messages.save_copies(messages.create_copies(message, recipients))
+    return jsonify({'message': messages.transform(message, message_copies=message_copies)}), 201
 
 
 @BLUEPRINT.route('/messages/<message_id>/replies', methods=['GET'])

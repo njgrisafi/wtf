@@ -285,32 +285,42 @@ def test_get_armor_by_id_not_found(test_client):
     response.assert_body({'errors': ['Armor not found']})
 
 
+@patch('wtf.core.messages.transform')
+@patch('wtf.core.messages.save_copies')
 @patch('wtf.core.messages.save')
 def test_create_message(
         mock_save,
+        mock_save_copies,
+        mock_transform,
         test_client
     ):
     expected = 'foobar'
     mock_save.return_value = expected
+    mock_save_copies.return_value = expected
+    mock_transform.return_value = expected
     response = test_client.post('/messages', body={})
     response.assert_status_code(201)
     response.assert_body({'message': 'foobar'})
 
 
 @patch('wtf.core.messages.transform')
-@patch('wtf.core.messages.save')
 @patch('wtf.core.messages.find_by_id')
+@patch('wtf.core.messages.save_copies')
+@patch('wtf.core.messages.save')
 def test_create_message_reply(
         mock_save,
+        mock_save_copies,
         mock_find_by_id,
         mock_transform,
         test_client
     ):
-    mock_save.return_value = 'foobar'
-    mock_find_by_id.return_value = 'foobar'
+    expected = 'foobar'
+    mock_save.return_value = expected
+    mock_save_copies.return_value = expected
+    mock_find_by_id.return_value = None
     mock_transform.return_value = 'foobar-transformed'
     response = test_client.post('/messages/%s/replies' % TEST_DATA['message']['id'],
-                                body={'body': 'test', 'subject': 'test', 'recipients': ['test']}
+                                body={}
                                )
     response.assert_status_code(201)
     response.assert_body({'message': 'foobar-transformed'})
